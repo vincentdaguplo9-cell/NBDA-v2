@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS donors (
     donor_id INT PRIMARY KEY AUTO_INCREMENT,
     first_name VARCHAR(50) NOT NULL,
-    middle_name VARCHAR(50) NOT NULL DEFAULT '',
     last_name VARCHAR(50) NOT NULL,
     sex ENUM('MALE', 'FEMALE') NOT NULL,
     birth_date DATE NOT NULL,
@@ -25,7 +24,7 @@ CREATE TABLE IF NOT EXISTS donors (
     last_successful_donation DATE NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_donor_identity (first_name, middle_name, last_name, birth_date, contact_no)
+    UNIQUE KEY uq_donor_identity (first_name, last_name, birth_date, contact_no)
 );
 
 CREATE TABLE IF NOT EXISTS donor_screening (

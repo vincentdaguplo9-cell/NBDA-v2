@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="0.0" styleClass="screen-root" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.DonorHistoryViewController">
+    <padding>
+        <Insets bottom="16.0" left="16.0" right="16.0" top="16.0" />
+    </padding>
+
+    <!-- Header Banner -->
+    <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="screen-banner">
+        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+            <Label fx:id="donorNameLabel" styleClass="page-eyebrow" text="Donor Name" />
+            <Label styleClass="page-title" text="Donation History" />
+        </VBox>
+        <Region HBox.hgrow="ALWAYS" />
+        <Button fx:id="refreshButton" mnemonicParsing="false" onAction="#refreshHistory" styleClass="action-button secondary-button" text="Refresh" />
+    </HBox>
+
+    <!-- History Tabs -->
+    <TabPane side="TOP" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS" styleClass="panel-card">
+        <tabs>
+            <Tab text="Donations">
+                <content>
+                    <VBox spacing="10.0" VBox.vgrow="ALWAYS" styleClass="panel-card">
+                        <TableView fx:id="donationTable" styleClass="inventory-table" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="donationBagColumn" text="Bag ID" prefWidth="100" />
+                                <TableColumn fx:id="donationBloodTypeColumn" text="Blood Type" prefWidth="80" />
+                                <TableColumn fx:id="donationCollectionColumn" text="Collection Date" prefWidth="100" />
+                                <TableColumn fx:id="donationStatusColumn" text="Status" prefWidth="90" />
+                                <TableColumn fx:id="donationExpiryColumn" text="Expiry Date" prefWidth="100" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+            <Tab text="Screenings">
+                <content>
+                    <VBox spacing="10.0" VBox.vgrow="ALWAYS" styleClass="panel-card">
+                        <TableView fx:id="screeningTable" styleClass="inventory-table" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="screeningIdColumn" text="ID" />
+                                <TableColumn fx:id="screeningDateColumn" text="Date" />
+                                <TableColumn fx:id="screeningCollectionColumn" text="Collection" />
+                                <TableColumn fx:id="screeningStatusColumn" text="Status" />
+                                <TableColumn fx:id="screeningByColumn" text="By" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+            <Tab text="Issued">
+                <content>
+                    <VBox spacing="10.0" VBox.vgrow="ALWAYS" styleClass="panel-card">
+                        <TableView fx:id="issuanceTable" styleClass="inventory-table" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="issuanceBagColumn" text="Bag ID" />
+                                <TableColumn fx:id="issuancePatientColumn" text="Patient" />
+                                <TableColumn fx:id="issuanceHospitalColumn" text="Hospital" />
+                                <TableColumn fx:id="issuanceDateColumn" text="Issued Date" />
+                                <TableColumn fx:id="issuanceCrossmatchColumn" text="Crossmatch" />
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </content>
+            </Tab>
+        </tabs>
+    </TabPane>
+</VBox>

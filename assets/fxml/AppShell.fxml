@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Circle?>
+
+<BorderPane fx:id="root" styleClass="app-shell" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AppShellController">
+    
+    <left>
+        <VBox prefWidth="260.0" styleClass="sidebar">
+            <padding><Insets bottom="30.0" left="20.0" right="20.0" top="40.0" /></padding>
+            
+            <VBox spacing="5.0">
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                    <Circle fill="#e74c3c" radius="6.0" />
+                    <Label styleClass="sidebar-brand-large" text="NBDA" />
+                </HBox>
+                <Label styleClass="sidebar-brand-sub" text="Blood Archive System" />
+            </VBox>
+
+            <Region prefHeight="40.0" />
+
+            <VBox spacing="10.0" VBox.vgrow="ALWAYS">
+                <Label styleClass="sidebar-section-header" text="MAIN MENU" />
+                
+                <Button fx:id="dashboardButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showDashboard" styleClass="nav-button, nav-active" text="Dashboard" />
+                
+                <Label styleClass="sidebar-section-header" text="DONOR SERVICES">
+                    <VBox.margin><Insets top="15.0" /></VBox.margin>
+                </Label>
+                <Button fx:id="registrationButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showRegistration" styleClass="nav-button" text="New Registration" />
+                <Button fx:id="recordDonationButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showRecordDonation" styleClass="nav-button" text="Record Return" />
+                
+                <Label styleClass="sidebar-section-header" text="INVENTORY">
+                    <VBox.margin><Insets top="15.0" /></VBox.margin>
+                </Label>
+                <Button fx:id="inventoryButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showInventory" styleClass="nav-button" text="Blood Archive" />
+                <Button fx:id="recordsButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showRecords" styleClass="nav-button" text="System Logs" />
+            </VBox>
+
+            <VBox spacing="15.0" styleClass="sidebar-footer">
+                <Separator opacity="0.1" />
+                <Button fx:id="logoutButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#handleLogout" styleClass="nav-button-logout" text="Logout System" />
+            </VBox>
+        </VBox>
+    </left>
+
+    <center>
+        <StackPane fx:id="contentArea" styleClass="main-content-background">
+            </StackPane>
+    </center>
+
+</BorderPane>

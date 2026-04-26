@@ -19,14 +19,26 @@ public class DBConnection {
 
     static {
         try {
-            // Load MySQL JDBC driver.
-            Class.forName("com.mysql.cj.jdbc.Driver");
+            loadDriver();
             loadConfig();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException("MySQL JDBC Driver not found.", e);
         } catch (IOException e) {
             throw new RuntimeException("Database config not found. Expected: " + CONFIG_PATH, e);
         }
+    }
+
+    private static void loadDriver() {
+        String[] driverCandidates = {
+                "org.mariadb.jdbc.Driver",
+                "com.mysql.cj.jdbc.Driver"
+        };
+        for (String driver : driverCandidates) {
+            try {
+                Class.forName(driver);
+                return;
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
+        throw new RuntimeException("No MariaDB/MySQL JDBC driver found in lib/.");
     }
 
     // Load DB settings from config/db.properties so it can be edited anytime.
@@ -50,5 +62,39 @@ public class DBConnection {
     // Get a new database connection.
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL, USER, PASS);
+    }
+
+    public static Connection getServerConnection() throws SQLException {
+        return DriverManager.getConnection(serverUrl(URL), USER, PASS);
+    }
+
+    public static String getConfiguredDatabaseName() {
+        String dbName = configuredDatabaseName(URL);
+        return dbName == null || dbName.isBlank() ? "blood_archive" : dbName;
+    }
+
+    private static String configuredDatabaseName(String jdbcUrl) {
+        int schemeIndex = jdbcUrl.indexOf("://");
+        int slashIndex = jdbcUrl.indexOf('/', schemeIndex >= 0 ? schemeIndex + 3 : 0);
+        if (slashIndex < 0) {
+            return null;
+        }
+        int queryIndex = jdbcUrl.indexOf('?', slashIndex);
+        String dbName = queryIndex >= 0
+                ? jdbcUrl.substring(slashIndex + 1, queryIndex)
+                : jdbcUrl.substring(slashIndex + 1);
+        return dbName.isBlank() ? null : dbName;
+    }
+
+    private static String serverUrl(String jdbcUrl) {
+        int schemeIndex = jdbcUrl.indexOf("://");
+        int slashIndex = jdbcUrl.indexOf('/', schemeIndex >= 0 ? schemeIndex + 3 : 0);
+        if (slashIndex < 0) {
+            return jdbcUrl;
+        }
+        int queryIndex = jdbcUrl.indexOf('?', slashIndex);
+        String prefix = jdbcUrl.substring(0, slashIndex + 1);
+        String suffix = queryIndex >= 0 ? jdbcUrl.substring(queryIndex) : "";
+        return prefix + suffix;
     }
 }
