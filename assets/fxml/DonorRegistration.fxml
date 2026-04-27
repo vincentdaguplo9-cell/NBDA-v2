@@ -45,6 +45,7 @@
                         <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
                             <Label styleClass="field-label" text="Date of Birth *" />
                             <DatePicker fx:id="birthdatePicker" maxWidth="Infinity" styleClass="modern-datepicker" />
+                            <Label fx:id="ageLabel" styleClass="field-sublabel" text="" />
                         </VBox>
 
                         <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="1">

@@ -301,7 +301,9 @@ public class DonorRegistrationController {
         Alert.AlertType alertType = result.isSuccess()
                 ? Alert.AlertType.INFORMATION
                 : (result.isDeferred() ? Alert.AlertType.WARNING : Alert.AlertType.ERROR);
-        new Alert(alertType, result.getMessage()).showAndWait();
+        Alert alert = new Alert(alertType, result.getMessage());
+        alert.initOwner(saveButton.getScene().getWindow());
+        alert.showAndWait();
 
         if (result.isSuccess()) {
             clearForm(result);
