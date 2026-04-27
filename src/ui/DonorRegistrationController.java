@@ -41,6 +41,8 @@ public class DonorRegistrationController {
 
     private final DohDonorDAO donorDAO = new DohDonorDAO();
 
+    @FXML private TextField externalCardIdField;
+    @FXML private ComboBox<String> externalSourceCombo;
     @FXML private TextField firstNameField;
     @FXML private TextField lastNameField;
     @FXML private ComboBox<String> sexCombo;
@@ -77,6 +79,7 @@ public class DonorRegistrationController {
 
     @FXML
     public void initialize() {
+        externalSourceCombo.setItems(FXCollections.observableArrayList("NONE", "PRC", "DOH"));
         bloodTypeCombo.setItems(FXCollections.observableArrayList("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"));
         sexCombo.setItems(FXCollections.observableArrayList("MALE", "FEMALE"));
         barangayCombo.setItems(FXCollections.observableArrayList(BARANGAYS));
@@ -260,9 +263,18 @@ public class DonorRegistrationController {
             return;
         }
 
+        String externalCardId = externalCardIdField.getText();
+        String externalSource = "NONE";
+        if (externalSourceCombo.getValue() != null) {
+            externalSource = externalSourceCombo.getValue();
+        }
+        
         DohDonor donor = new DohDonor(
                 null,
+                externalCardId,
+                externalSource,
                 firstName,
+                "",  // middleName
                 lastName,
                 sex,
                 birthdate,

@@ -33,48 +33,58 @@
                         </columnConstraints>
                         
                         <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label styleClass="field-label" text="External Card ID (PRC/DOH)" />
+                            <TextField fx:id="externalCardIdField" promptText="RC-12345 or DOH-67890" styleClass="modern-input" />
+                        </VBox>
+                        
+                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label styleClass="field-label" text="ID Source" />
+                            <ComboBox fx:id="externalSourceCombo" maxWidth="Infinity" promptText="Select" styleClass="modern-combo" />
+                        </VBox>
+                        
+                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
                             <Label styleClass="field-label" text="First Name *" />
                             <TextField fx:id="firstNameField" promptText="Juan" styleClass="modern-input" />
                         </VBox>
                         
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
                             <Label styleClass="field-label" text="Last Name *" />
                             <TextField fx:id="lastNameField" promptText="Dela Cruz" styleClass="modern-input" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
                             <Label styleClass="field-label" text="Date of Birth *" />
                             <DatePicker fx:id="birthdatePicker" maxWidth="Infinity" styleClass="modern-datepicker" />
                             <Label fx:id="ageLabel" styleClass="field-sublabel" text="" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
                             <Label styleClass="field-label" text="Sex *" />
                             <ComboBox fx:id="sexCombo" maxWidth="Infinity" promptText="Select" styleClass="modern-combo" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
                             <Label styleClass="field-label" text="Barangay *" />
                             <ComboBox fx:id="barangayCombo" maxWidth="Infinity" styleClass="modern-combo" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
                             <Label styleClass="field-label" text="Blood Type *" />
                             <ComboBox fx:id="bloodTypeCombo" maxWidth="Infinity" styleClass="modern-combo" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnSpan="2" GridPane.rowIndex="3">
+                        <VBox spacing="5.0" GridPane.columnSpan="2" GridPane.rowIndex="4">
                             <Label styleClass="field-label" text="Contact Number *" />
                             <TextField fx:id="contactField" promptText="09123456789" styleClass="modern-input" />
                             <Label styleClass="field-hint" text="11 digits starting with 09" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="4">
+                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="5">
                             <Label styleClass="field-label" text="Last Donation" />
                             <DatePicker fx:id="lastDonationPicker" maxWidth="Infinity" styleClass="modern-datepicker" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="5">
                             <Label styleClass="field-label" text="Collection Date *" />
                             <DatePicker fx:id="collectionDatePicker" maxWidth="Infinity" styleClass="modern-datepicker" />
                         </VBox>

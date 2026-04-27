@@ -54,21 +54,31 @@
                         </columnConstraints>
                         
                         <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label styleClass="field-label" text="External Card ID" />
+                            <TextField fx:id="externalCardIdField" editable="false" promptText="RC-12345" styleClass="modern-input-readonly" />
+                        </VBox>
+                        
+                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label styleClass="field-label" text="ID Source" />
+                            <TextField fx:id="externalSourceField" editable="false" promptText="PRC/DOH" styleClass="modern-input-readonly" />
+                        </VBox>
+                        
+                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
                             <Label styleClass="field-label" text="First Name" />
                             <TextField fx:id="firstNameField" editable="false" promptText="Juan" styleClass="modern-input-readonly" />
                         </VBox>
                         
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
                             <Label styleClass="field-label" text="Last Name" />
                             <TextField fx:id="lastNameField" editable="false" promptText="Dela Cruz" styleClass="modern-input-readonly" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
                             <Label styleClass="field-label" text="Blood Type" />
                             <ComboBox fx:id="bloodTypeCombo" editable="false" maxWidth="Infinity" styleClass="modern-combo" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
                             <Label styleClass="field-label" text="Barangay" />
                             <ComboBox fx:id="barangayCombo" editable="false" maxWidth="Infinity" styleClass="modern-combo" />
                         </VBox>

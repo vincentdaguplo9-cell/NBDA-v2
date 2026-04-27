@@ -2,10 +2,13 @@ package model;
 
 import java.time.LocalDate;
 
-// DOH-aligned donor record used by the new FXML workflow.
+// DOH-aligned donor record for the new workflow with External ID mapping.
 public class DohDonor {
     private Integer id;
+    private String externalCardId;
+    private String externalSource;
     private String firstName;
+    private String middleName;
     private String lastName;
     private String sex;
     private LocalDate birthdate;
@@ -14,10 +17,14 @@ public class DohDonor {
     private String contact;
     private LocalDate lastSuccessfulDonation;
 
-    public DohDonor(Integer id, String firstName, String lastName, String sex, LocalDate birthdate, String bloodType,
+    public DohDonor(Integer id, String externalCardId, String externalSource, String firstName, String middleName,
+                    String lastName, String sex, LocalDate birthdate, String bloodType,
                     String barangay, String contact, LocalDate lastSuccessfulDonation) {
         this.id = id;
+        this.externalCardId = externalCardId;
+        this.externalSource = externalSource;
         this.firstName = firstName;
+        this.middleName = middleName;
         this.lastName = lastName;
         this.sex = sex;
         this.birthdate = birthdate;
@@ -35,8 +42,20 @@ public class DohDonor {
         this.id = id;
     }
 
+    public String getExternalCardId() {
+        return externalCardId;
+    }
+
+    public String getExternalSource() {
+        return externalSource;
+    }
+
     public String getFirstName() {
         return firstName;
+    }
+
+    public String getMiddleName() {
+        return middleName;
     }
 
     public String getLastName() {

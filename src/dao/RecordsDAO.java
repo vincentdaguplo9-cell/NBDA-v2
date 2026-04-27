@@ -59,7 +59,10 @@ public class RecordsDAO {
     private DonorRecord parseDonor(ResultSet rs) throws SQLException {
         return new DonorRecord(
                 rs.getInt("donor_id"),
+                rs.getString("external_card_id"),
+                rs.getString("external_source"),
                 rs.getString("first_name"),
+                rs.getString("middle_name") != null ? rs.getString("middle_name") : "",
                 rs.getString("last_name"),
                 rs.getString("sex"),
                 toLocalDate(rs.getDate("birth_date")),
@@ -315,7 +318,10 @@ public class RecordsDAO {
                 while (rs.next()) {
                     records.add(new DonorRecord(
                             rs.getInt("donor_id"),
+                            rs.getString("external_card_id"),
+                            rs.getString("external_source"),
                             rs.getString("first_name"),
+                            rs.getString("middle_name") != null ? rs.getString("middle_name") : "",
                             rs.getString("last_name"),
                             rs.getString("sex"),
                             toLocalDate(rs.getDate("birth_date")),
@@ -421,7 +427,10 @@ public class RecordsDAO {
                 if (rs.next()) {
                     records.add(new DonorRecord(
                             rs.getInt("donor_id"),
+                            rs.getString("external_card_id"),
+                            rs.getString("external_source"),
                             rs.getString("first_name"),
+                            rs.getString("middle_name") != null ? rs.getString("middle_name") : "",
                             rs.getString("last_name"),
                             rs.getString("sex"),
                             toLocalDate(rs.getDate("birth_date")),

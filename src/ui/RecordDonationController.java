@@ -36,6 +36,7 @@ public class RecordDonationController {
 
     private final DohDonorDAO donorDAO = new DohDonorDAO();
     private Integer selectedDonorId = null;
+    private DohDonor foundDonor = null;
 
     @FXML private TextField searchField;
     @FXML private Button searchButton;
@@ -44,6 +45,8 @@ public class RecordDonationController {
 
     @FXML private TextField firstNameField;
     @FXML private TextField lastNameField;
+    @FXML private TextField externalCardIdField;
+    @FXML private TextField externalSourceField;
     @FXML private ComboBox<String> bloodTypeCombo;
     @FXML private ComboBox<String> barangayCombo;
 
@@ -134,8 +137,11 @@ public class RecordDonationController {
         DohDonor donor = donorDAO.findDonorBySearch(query);
         if (donor != null) {
             selectedDonorId = donor.getId();
+            foundDonor = donor;
             firstNameField.setText(donor.getFirstName());
             lastNameField.setText(donor.getLastName());
+            externalCardIdField.setText(donor.getExternalCardId() != null ? donor.getExternalCardId() : "—");
+            externalSourceField.setText(donor.getExternalSource() != null ? donor.getExternalSource() : "—");
             bloodTypeCombo.setValue(donor.getBloodType());
             barangayCombo.setValue(donor.getBarangay());
 
@@ -245,17 +251,12 @@ public class RecordDonationController {
             return;
         }
 
-        DohDonor donor = new DohDonor(
-                selectedDonorId,
-                firstNameField.getText(),
-                lastNameField.getText(),
-                null,
-                null,
-                null,
-                barangayCombo.getValue(),
-                null,
-                null
-        );
+        if (foundDonor == null) {
+            showValidation("Please search and select a donor first.");
+            return;
+        }
+
+        DohDonor donor = foundDonor;
 
         RegistrationResult result = donorDAO.registerDonation(donor, screening, currentUser.getUserId());
         Alert.AlertType alertType = result.isSuccess()
@@ -281,6 +282,8 @@ public class RecordDonationController {
         searchField.clear();
         firstNameField.clear();
         lastNameField.clear();
+        externalCardIdField.clear();
+        externalSourceField.clear();
         bloodTypeCombo.getSelectionModel().clearSelection();
         barangayCombo.getSelectionModel().clearSelection();
         collectionDatePicker.setValue(LocalDate.now());
@@ -295,6 +298,7 @@ public class RecordDonationController {
         feverCheckBox.setSelected(true);
         tattooCheckBox.setSelected(true);
         selectedDonorId = null;
+        foundDonor = null;
         donorInfoLabel.setText("Search for a returning donor above");
         donorInfoLabel.setStyle("-fx-text-fill: #64748B;");
         eligibilityStatusLabel.setText("Status will appear after search");
@@ -305,8 +309,11 @@ public class RecordDonationController {
     private void clearDonorFields() {
         firstNameField.clear();
         lastNameField.clear();
+        externalCardIdField.clear();
+        externalSourceField.clear();
         bloodTypeCombo.getSelectionModel().clearSelection();
         barangayCombo.getSelectionModel().clearSelection();
+        foundDonor = null;
     }
 
     private void updateWaitTimeCalculation() {

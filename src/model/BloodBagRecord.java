@@ -2,7 +2,7 @@ package model;
 
 import java.time.LocalDate;
 
-// Inventory projection for the new DOH-compliant blood archive view.
+// Inventory projection for DOH-compliant blood archive.
 public class BloodBagRecord {
     private final String bagId;
     private final Integer donorId;
@@ -11,11 +11,11 @@ public class BloodBagRecord {
     private final String bloodType;
     private final LocalDate dateCollected;
     private final LocalDate dateExpiry;
+    private final String inventoryStatus;
     private final String ttiStatus;
-    private final String status;
 
     public BloodBagRecord(String bagId, Integer donorId, String donorName, String barangay, String bloodType,
-                          LocalDate dateCollected, LocalDate dateExpiry, String ttiStatus, String status) {
+                          LocalDate dateCollected, LocalDate dateExpiry, String inventoryStatus, String ttiStatus) {
         this.bagId = bagId;
         this.donorId = donorId;
         this.donorName = donorName;
@@ -23,8 +23,8 @@ public class BloodBagRecord {
         this.bloodType = bloodType;
         this.dateCollected = dateCollected;
         this.dateExpiry = dateExpiry;
+        this.inventoryStatus = inventoryStatus;
         this.ttiStatus = ttiStatus;
-        this.status = status;
     }
 
     public String getBagId() {
@@ -55,19 +55,24 @@ public class BloodBagRecord {
         return dateExpiry;
     }
 
+    public String getInventoryStatus() {
+        return inventoryStatus;
+    }
+
     public String getTtiStatus() {
         return ttiStatus;
     }
 
+    // Status getter for backward compatibility
     public String getStatus() {
-        return status;
+        return inventoryStatus;
     }
 
     public String getEffectiveStatus() {
-        if (dateExpiry != null && dateExpiry.isBefore(LocalDate.now()) && !"ISSUED".equalsIgnoreCase(status)
-                && !"DISCARDED".equalsIgnoreCase(status)) {
+        if (dateExpiry != null && dateExpiry.isBefore(LocalDate.now()) && !"ISSUED".equalsIgnoreCase(inventoryStatus)
+                && !"DISCARDED".equalsIgnoreCase(inventoryStatus)) {
             return "EXPIRED";
         }
-        return status;
+        return inventoryStatus;
     }
 }

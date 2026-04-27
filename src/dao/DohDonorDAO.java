@@ -87,6 +87,12 @@ public class DohDonorDAO {
         List<String> reasons = new ArrayList<>();
         LocalDate nextEligibleDate = null;
 
+        String externalId = donor.getExternalCardId();
+        String externalSource = donor.getExternalSource();
+        if (externalId == null || externalId.isBlank() || "NONE".equals(externalSource)) {
+            reasons.add("Valid PRC/DOH ID required - please register with external card ID.");
+        }
+
         int age = Period.between(donor.getBirthdate(), screening.getCollectionDate()).getYears();
         if (age < 16) {
             reasons.add("Donor must be at least 16 years old.");
@@ -216,7 +222,10 @@ public class DohDonorDAO {
                 if (rs.next()) {
                     return new DohDonor(
                             rs.getInt("donor_id"),
+                            rs.getString("external_card_id"),
+                            rs.getString("external_source"),
                             rs.getString("first_name"),
+                            rs.getString("middle_name") != null ? rs.getString("middle_name") : "",
                             rs.getString("last_name"),
                             rs.getString("sex"),
                             rs.getDate("birth_date") != null ? rs.getDate("birth_date").toLocalDate() : null,
@@ -234,17 +243,20 @@ public class DohDonorDAO {
     }
 
     private int insertDonor(Connection conn, DohDonor donor, LocalDate lastSuccessfulDonation) throws SQLException {
-        String sql = "INSERT INTO donors (first_name, last_name, sex, birth_date, blood_type, barangay, contact_no, last_successful_donation) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO donors (external_card_id, external_source, first_name, middle_name, last_name, sex, birth_date, blood_type, barangay, contact_no, last_successful_donation) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, donor.getFirstName());
-            ps.setString(2, donor.getLastName());
-            ps.setString(3, donor.getSex());
-            ps.setDate(4, Date.valueOf(donor.getBirthdate()));
-            ps.setString(5, donor.getBloodType());
-            ps.setString(6, donor.getBarangay());
-            ps.setString(7, donor.getContact());
-            ps.setDate(8, lastSuccessfulDonation != null ? Date.valueOf(lastSuccessfulDonation) : null);
+            ps.setString(1, donor.getExternalCardId());
+            ps.setString(2, donor.getExternalSource());
+            ps.setString(3, donor.getFirstName());
+            ps.setString(4, donor.getMiddleName());
+            ps.setString(5, donor.getLastName());
+            ps.setString(6, donor.getSex());
+            ps.setDate(7, Date.valueOf(donor.getBirthdate()));
+            ps.setString(8, donor.getBloodType());
+            ps.setString(9, donor.getBarangay());
+            ps.setString(10, donor.getContact());
+            ps.setDate(11, lastSuccessfulDonation != null ? Date.valueOf(lastSuccessfulDonation) : null);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {

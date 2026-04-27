@@ -301,7 +301,10 @@ public class RecordsViewController {
             }
             return new DonorRecord(
                     donor.getDonorId(),
+                    donor.getExternalCardId(),
+                    donor.getExternalSource(),
                     normalizeName(firstName.getText()),
+                    "",
                     normalizeName(lastName.getText()),
                     sex.getValue(),
                     birthDate.getValue(),
