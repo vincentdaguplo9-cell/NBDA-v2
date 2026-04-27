@@ -28,22 +28,46 @@ public class RecordsDAO {
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                records.add(new DonorRecord(
-                        rs.getInt("donor_id"),
-                        rs.getString("first_name"),
-                        rs.getString("last_name"),
-                        rs.getString("sex"),
-                        toLocalDate(rs.getDate("birth_date")),
-                        rs.getString("blood_type"),
-                        rs.getString("barangay"),
-                        rs.getString("contact_no"),
-                        toLocalDate(rs.getDate("last_successful_donation"))
-                ));
+                records.add(parseDonor(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load donors.", e);
         }
         return records;
+    }
+
+    public List<DonorRecord> fetchDonorsPage(int page, int pageSize) {
+        List<DonorRecord> records = new ArrayList<>();
+        int offset = page * pageSize;
+        String sql = "SELECT donor_id, first_name, last_name, sex, birth_date, blood_type, barangay, contact_no, last_successful_donation " +
+                "FROM donors ORDER BY last_name, first_name, donor_id DESC LIMIT ? OFFSET ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, pageSize);
+            ps.setInt(2, offset);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(parseDonor(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load donors page.", e);
+        }
+        return records;
+    }
+
+    private DonorRecord parseDonor(ResultSet rs) throws SQLException {
+        return new DonorRecord(
+                rs.getInt("donor_id"),
+                rs.getString("first_name"),
+                rs.getString("last_name"),
+                rs.getString("sex"),
+                toLocalDate(rs.getDate("birth_date")),
+                rs.getString("blood_type"),
+                rs.getString("barangay"),
+                rs.getString("contact_no"),
+                toLocalDate(rs.getDate("last_successful_donation"))
+        );
     }
 
     public boolean updateDonor(DonorRecord donor) {
@@ -79,20 +103,49 @@ public class RecordsDAO {
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                records.add(new ScreeningHistoryRecord(
-                        rs.getInt("screening_id"),
-                        rs.getString("donor_name"),
-                        toLocalDate(rs.getDate("screening_date")),
-                        toLocalDate(rs.getDate("intended_collection_date")),
-                        rs.getString("screening_status"),
-                        rs.getString("decision_reason"),
-                        rs.getString("screened_by")
-                ));
+                records.add(parseScreening(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load screening history.", e);
         }
         return records;
+    }
+
+    public List<ScreeningHistoryRecord> fetchScreeningsPage(int page, int pageSize) {
+        List<ScreeningHistoryRecord> records = new ArrayList<>();
+        int offset = page * pageSize;
+        String sql = "SELECT ds.screening_id, ds.screening_date, ds.intended_collection_date, ds.screening_status, ds.decision_reason, " +
+                "TRIM(CONCAT_WS(' ', d.first_name, d.last_name)) AS donor_name, " +
+                "TRIM(CONCAT_WS(' ', u.first_name, u.last_name)) AS screened_by " +
+                "FROM donor_screening ds " +
+                "INNER JOIN donors d ON d.donor_id = ds.donor_id " +
+                "LEFT JOIN users u ON u.user_id = ds.screened_by " +
+                "ORDER BY ds.screening_date DESC, ds.screening_id DESC LIMIT ? OFFSET ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, pageSize);
+            ps.setInt(2, offset);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(parseScreening(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load screening page.", e);
+        }
+        return records;
+    }
+
+    private ScreeningHistoryRecord parseScreening(ResultSet rs) throws SQLException {
+        return new ScreeningHistoryRecord(
+                rs.getInt("screening_id"),
+                rs.getString("donor_name"),
+                toLocalDate(rs.getDate("screening_date")),
+                toLocalDate(rs.getDate("intended_collection_date")),
+                rs.getString("screening_status"),
+                rs.getString("decision_reason"),
+                rs.getString("screened_by")
+        );
     }
 
     public List<IssuanceRecord> fetchIssuanceLog() {
@@ -110,24 +163,55 @@ public class RecordsDAO {
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                records.add(new IssuanceRecord(
-                        rs.getString("bag_id"),
-                        rs.getString("donor_name"),
-                        rs.getString("blood_type"),
-                        toLocalDate(rs.getDate("collection_date")),
-                        toLocalDateTime(rs.getTimestamp("issued_at")),
-                        rs.getString("issue_patient_name"),
-                        rs.getString("request_hospital"),
-                        rs.getString("requesting_physician"),
-                        rs.getString("blood_request_no"),
-                        rs.getString("crossmatch_status"),
-                        rs.getString("issued_by")
-                ));
+                records.add(parseIssuance(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load issuance records.", e);
         }
         return records;
+    }
+
+    public List<IssuanceRecord> fetchIssuanceLogPage(int page, int pageSize) {
+        List<IssuanceRecord> records = new ArrayList<>();
+        int offset = page * pageSize;
+        String sql = "SELECT bi.bag_id, bi.blood_type, bi.collection_date, bi.issued_at, bi.issue_patient_name, bi.request_hospital, " +
+                "bi.requesting_physician, bi.blood_request_no, bi.crossmatch_status, " +
+                "TRIM(CONCAT_WS(' ', d.first_name, d.last_name)) AS donor_name, " +
+                "TRIM(CONCAT_WS(' ', u.first_name, u.last_name)) AS issued_by " +
+                "FROM blood_inventory bi " +
+                "INNER JOIN donors d ON d.donor_id = bi.donor_id " +
+                "LEFT JOIN users u ON u.user_id = bi.issued_by " +
+                "WHERE bi.issued_at IS NOT NULL " +
+                "ORDER BY bi.issued_at DESC LIMIT ? OFFSET ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, pageSize);
+            ps.setInt(2, offset);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(parseIssuance(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load issuance page.", e);
+        }
+        return records;
+    }
+
+    private IssuanceRecord parseIssuance(ResultSet rs) throws SQLException {
+        return new IssuanceRecord(
+                rs.getString("bag_id"),
+                rs.getString("donor_name"),
+                rs.getString("blood_type"),
+                toLocalDate(rs.getDate("collection_date")),
+                toLocalDateTime(rs.getTimestamp("issued_at")),
+                rs.getString("issue_patient_name"),
+                rs.getString("request_hospital"),
+                rs.getString("requesting_physician"),
+                rs.getString("blood_request_no"),
+                rs.getString("crossmatch_status"),
+                rs.getString("issued_by")
+        );
     }
 
     public List<AuditLogRecord> fetchAuditLogs() {
@@ -140,19 +224,45 @@ public class RecordsDAO {
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                records.add(new AuditLogRecord(
-                        toLocalDateTime(rs.getTimestamp("event_time")),
-                        rs.getString("actor"),
-                        rs.getString("action_type"),
-                        rs.getString("entity_type"),
-                        rs.getString("entity_id"),
-                        rs.getString("details")
-                ));
+                records.add(parseAudit(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to load audit logs.", e);
         }
         return records;
+    }
+
+    public List<AuditLogRecord> fetchAuditLogsPage(int page, int pageSize) {
+        List<AuditLogRecord> records = new ArrayList<>();
+        int offset = page * pageSize;
+        String sql = "SELECT al.event_time, al.action_type, al.entity_type, al.entity_id, al.details, " +
+                "TRIM(CONCAT_WS(' ', u.first_name, u.last_name)) AS actor " +
+                "FROM audit_log al LEFT JOIN users u ON u.user_id = al.user_id " +
+                "ORDER BY al.event_time DESC, al.audit_id DESC LIMIT ? OFFSET ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, pageSize);
+            ps.setInt(2, offset);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(parseAudit(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load audit page.", e);
+        }
+        return records;
+    }
+
+    private AuditLogRecord parseAudit(ResultSet rs) throws SQLException {
+        return new AuditLogRecord(
+                toLocalDateTime(rs.getTimestamp("event_time")),
+                rs.getString("actor"),
+                rs.getString("action_type"),
+                rs.getString("entity_type"),
+                rs.getString("entity_id"),
+                rs.getString("details")
+        );
     }
 
     public List<IssuanceRecord> fetchRecentIssuances() {
@@ -430,6 +540,50 @@ public class RecordsDAO {
 
     private LocalDate toLocalDate(Date date) {
         return date == null ? null : date.toLocalDate();
+    }
+
+    public int getDonorCount() {
+        return countTable("donors");
+    }
+
+    public int getScreeningCount() {
+        return countTable("donor_screening");
+    }
+
+    public int getIssuanceCount() {
+        String sql = "SELECT COUNT(*) FROM blood_inventory WHERE issued_at IS NOT NULL";
+        return countCustom(sql);
+    }
+
+    public int getAuditCount() {
+        return countTable("audit_log");
+    }
+
+    private int countTable(String table) {
+        String sql = "SELECT COUNT(*) FROM " + table;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to count " + table, e);
+        }
+        return 0;
+    }
+
+    private int countCustom(String sql) {
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to count", e);
+        }
+        return 0;
     }
 
     private LocalDateTime toLocalDateTime(Timestamp timestamp) {

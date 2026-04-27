@@ -1,0 +1,61 @@
+/* Compact Card for Filter Bar */
+.glass-card-compact {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-padding: 12 20;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 2);
+}
+
+.field-label-bold {
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-font-size: 13px;
+}
+
+/* Info Pill for Summary */
+.status-pill-info {
+    -fx-background-color: #ebf5fb;
+    -fx-padding: 6 12;
+    -fx-background-radius: 20;
+}
+
+/* Pagination Styling */
+.modern-pagination {
+    -fx-page-information-visible: false;
+}
+
+.modern-pagination .page-navigation-area .button {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dcdde1;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+
+.modern-pagination .page-navigation-area .button:hover {
+    -fx-background-color: #f1f2f6;
+}
+
+.modern-pagination .bullet-button {
+    -fx-background-color: #dcdde1;
+}
+
+.modern-pagination .bullet-button:selected {
+    -fx-background-color: #e74c3c; /* Theme Red */
+}
+
+/* Mini Outline Button */
+.btn-mini-outline {
+    -fx-background-color: transparent;
+    -fx-border-color: #bdc3c7;
+    -fx-text-fill: #7f8c8d;
+    -fx-font-size: 11px;
+    -fx-padding: 4 10;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+
+.btn-mini-outline:hover {
+    -fx-border-color: #e74c3c;
+    -fx-text-fill: #e74c3c;
+}

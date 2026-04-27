@@ -100,10 +100,7 @@ public class InventoryViewController {
 
         inventoryTable.setItems(pagedInventory);
         inventoryTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        inventoryTable.setFixedCellSize(54);
-        inventoryTable.setPrefHeight(604);
-        inventoryTable.setMinHeight(604);
-        inventoryTable.setMaxHeight(604);
+        inventoryTable.setFixedCellSize(45);
         inventoryTable.setPlaceholder(buildEmptyState("No blood bags match the current filters."));
 
         inventoryPagination.setMaxPageIndicatorCount(6);
@@ -192,13 +189,17 @@ public class InventoryViewController {
     private void handleReleaseOrIssue() {
         BloodBagRecord selected = inventoryTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            new Alert(Alert.AlertType.WARNING, "Select a blood bag first.").showAndWait();
+            Alert alert = new Alert(Alert.AlertType.WARNING, "Select a blood bag first.");
+            alert.initOwner(inventoryTable.getScene().getWindow());
+            alert.showAndWait();
             return;
         }
 
         String effectiveStatus = selected.getEffectiveStatus();
         if ("EXPIRED".equalsIgnoreCase(effectiveStatus)) {
-            new Alert(Alert.AlertType.WARNING, "Expired blood cannot be released or issued.").showAndWait();
+            Alert alert = new Alert(Alert.AlertType.WARNING, "Expired blood cannot be released or issued.");
+            alert.initOwner(inventoryTable.getScene().getWindow());
+            alert.showAndWait();
             return;
         }
 
@@ -208,12 +209,16 @@ public class InventoryViewController {
         } else if ("AVAILABLE".equalsIgnoreCase(effectiveStatus)) {
             result = processIssue(selected.getBagId());
         } else {
-            new Alert(Alert.AlertType.INFORMATION, "This bag is already " + effectiveStatus + ".").showAndWait();
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "This bag is already " + effectiveStatus + ".");
+            alert.initOwner(inventoryTable.getScene().getWindow());
+            alert.showAndWait();
             return;
         }
 
         Alert.AlertType alertType = result.isSuccess() ? Alert.AlertType.INFORMATION : Alert.AlertType.WARNING;
-        new Alert(alertType, result.getMessage()).showAndWait();
+        Alert alert = new Alert(alertType, result.getMessage());
+        alert.initOwner(inventoryTable.getScene().getWindow());
+        alert.showAndWait();
         refreshInventory();
     }
 
@@ -267,6 +272,7 @@ public class InventoryViewController {
         Dialog<TtiScreeningInput> dialog = new Dialog<>();
         dialog.setTitle("TTI Screening");
         dialog.setHeaderText("Encode mandatory TTI screening for bag " + bagId);
+        dialog.initOwner(inventoryTable.getScene().getWindow());
 
         ComboBox<String> hiv = ttiCombo();
         ComboBox<String> hbv = ttiCombo();
@@ -298,7 +304,9 @@ public class InventoryViewController {
                 return null;
             }
             if (normalizeRemarks(testKit.getText()) == null) {
-                new Alert(Alert.AlertType.WARNING, "Test kit or method is required.").showAndWait();
+                Alert warn = new Alert(Alert.AlertType.WARNING, "Test kit or method is required.");
+                warn.initOwner(inventoryTable.getScene().getWindow());
+                warn.showAndWait();
                 return null;
             }
             return new TtiScreeningInput(
@@ -318,6 +326,7 @@ public class InventoryViewController {
         Dialog<IssueRequestInput> dialog = new Dialog<>();
         dialog.setTitle("Issue Blood Bag");
         dialog.setHeaderText("Encode release details for bag " + bagId);
+        dialog.initOwner(inventoryTable.getScene().getWindow());
 
         TextField patientName = new TextField();
         TextField patientNo = new TextField();

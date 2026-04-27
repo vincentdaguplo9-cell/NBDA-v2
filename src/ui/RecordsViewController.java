@@ -15,6 +15,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.Pagination;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -40,6 +41,7 @@ public class RecordsViewController {
             "Haguikhikan", "Padre Inocentes Garcia", "Larrazabal", "Lico", "Lucsoon", "Mabini",
             "Mocpong", "P.I. Garcia", "Santissimo Rosario", "Santo Nino", "Talustusan", "Villa Caneja"
     );
+    private static final int PAGE_SIZE = 15;
 
     private final RecordsDAO recordsDAO = new RecordsDAO();
     private final AuditDAO auditDAO = new AuditDAO();
@@ -82,6 +84,11 @@ public class RecordsViewController {
     @FXML private TextField screeningSearchField;
     @FXML private TextField issuanceSearchField;
 
+    @FXML private Pagination donorPagination;
+    @FXML private Pagination screeningPagination;
+    @FXML private Pagination issuancePagination;
+    @FXML private Pagination auditPagination;
+
     @FXML
     public void initialize() {
         donorIdColumn.setCellValueFactory(new PropertyValueFactory<>("donorId"));
@@ -123,23 +130,48 @@ public class RecordsViewController {
         configureTable(issuanceTable);
         configureTable(auditTable);
 
+        donorPagination.setPageCount(Math.max(1, (int) Math.ceil(recordsDAO.getDonorCount() / (double) PAGE_SIZE)));
+        donorPagination.currentPageIndexProperty().addListener((obs, oldVal, newVal) -> loadDonorPage(newVal.intValue()));
+
+        screeningPagination.setPageCount(Math.max(1, (int) Math.ceil(recordsDAO.getScreeningCount() / (double) PAGE_SIZE)));
+        screeningPagination.currentPageIndexProperty().addListener((obs, oldVal, newVal) -> loadScreeningPage(newVal.intValue()));
+
+        issuancePagination.setPageCount(Math.max(1, (int) Math.ceil(recordsDAO.getIssuanceCount() / (double) PAGE_SIZE)));
+        issuancePagination.currentPageIndexProperty().addListener((obs, oldVal, newVal) -> loadIssuancePage(newVal.intValue()));
+
+        auditPagination.setPageCount(Math.max(1, (int) Math.ceil(recordsDAO.getAuditCount() / (double) PAGE_SIZE)));
+        auditPagination.currentPageIndexProperty().addListener((obs, oldVal, newVal) -> loadAuditPage(newVal.intValue()));
+
         refreshAll();
+    }
+
+    private void loadDonorPage(int page) {
+        donorTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchDonorsPage(page, PAGE_SIZE)));
+    }
+
+    private void loadScreeningPage(int page) {
+        screeningTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchScreeningsPage(page, PAGE_SIZE)));
+    }
+
+    private void loadIssuancePage(int page) {
+        issuanceTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchIssuanceLogPage(page, PAGE_SIZE)));
+    }
+
+    private void loadAuditPage(int page) {
+        auditTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchAuditLogsPage(page, PAGE_SIZE)));
     }
 
     @FXML
     private void refreshAll() {
-        donorTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchDonors()));
-        screeningTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchScreenings()));
-        issuanceTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchIssuanceLog()));
-        if (UserSession.getCurrentUser() != null && UserSession.getCurrentUser().isAdmin()) {
-            auditTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchAuditLogs()));
-        } else {
-            auditTable.setItems(FXCollections.observableArrayList());
-        }
+        loadDonorPage(0);
+        loadScreeningPage(0);
+        loadIssuancePage(0);
+        loadAuditPage(0);
     }
 
     @FXML
     private void searchDonors() {
+        donorPagination.setDisable(true);
         String query = donorSearchField.getText() == null ? "" : donorSearchField.getText().trim();
         if (query.isEmpty()) {
             donorTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchDonors()));
@@ -150,6 +182,7 @@ public class RecordsViewController {
 
     @FXML
     private void searchScreenings() {
+        screeningPagination.setDisable(true);
         String query = screeningSearchField.getText() == null ? "" : screeningSearchField.getText().trim();
         if (query.isEmpty()) {
             screeningTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchScreenings()));
@@ -160,6 +193,7 @@ public class RecordsViewController {
 
     @FXML
     private void searchIssuances() {
+        issuancePagination.setDisable(true);
         String query = issuanceSearchField.getText() == null ? "" : issuanceSearchField.getText().trim();
         if (query.isEmpty()) {
             issuanceTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchIssuanceLog()));
@@ -186,6 +220,7 @@ public class RecordsViewController {
             controller.loadDonorHistory(donor.getDonorId(), donor.getDisplayName());
 
             Stage stage = new Stage();
+            stage.initOwner(donorTable.getScene().getWindow());
             stage.setTitle("Donation History - " + donor.getDisplayName());
             stage.setScene(new Scene(root, 800, 600));
             stage.setMaximized(false);
