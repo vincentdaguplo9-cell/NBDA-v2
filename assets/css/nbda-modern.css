@@ -352,7 +352,13 @@
 
 .combo-box .cell:focused,
 .combo-box .cell:hover {
-    -fx-background-color: #F1F5F9;
+    -fx-background-color: #3B82F6;
+    -fx-text-fill: white;
+}
+
+.combo-box .list-cell:selected {
+    -fx-background-color: #3B82F6;
+    -fx-text-fill: white;
 }
 
 .combo-box .list-cell {
