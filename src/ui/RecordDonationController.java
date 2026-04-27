@@ -175,7 +175,9 @@ public class RecordDonationController {
     @FXML
     private void recordDonation() {
         if (selectedDonorId == null) {
-            new Alert(Alert.AlertType.WARNING, "Please search and select a donor first.").showAndWait();
+            Alert alert = new Alert(Alert.AlertType.WARNING, "Please search and select a donor first.");
+            alert.initOwner(saveButton.getScene().getWindow());
+            alert.showAndWait();
             return;
         }
 
@@ -259,7 +261,9 @@ public class RecordDonationController {
         Alert.AlertType alertType = result.isSuccess()
                 ? Alert.AlertType.INFORMATION
                 : (result.isDeferred() ? Alert.AlertType.WARNING : Alert.AlertType.ERROR);
-        new Alert(alertType, result.getMessage()).showAndWait();
+        Alert alert = new Alert(alertType, result.getMessage());
+        alert.initOwner(saveButton.getScene().getWindow());
+        alert.showAndWait();
 
         if (result.isSuccess()) {
             clearForm();
@@ -331,7 +335,9 @@ public class RecordDonationController {
     }
 
     private void showValidation(String message) {
-        new Alert(Alert.AlertType.WARNING, message).showAndWait();
+        Alert alert = new Alert(Alert.AlertType.WARNING, message);
+        alert.initOwner(saveButton.getScene().getWindow());
+        alert.showAndWait();
     }
 
     private void setEligibilityStatus(String text, String styleClass) {
