@@ -352,13 +352,7 @@
 
 .combo-box .cell:focused,
 .combo-box .cell:hover {
-    -fx-background-color: #3B82F6;
-    -fx-text-fill: white;
-}
-
-.combo-box .list-cell:selected {
-    -fx-background-color: #3B82F6;
-    -fx-text-fill: white;
+    -fx-background-color: #F1F5F9;
 }
 
 .combo-box .list-cell {
@@ -511,29 +505,30 @@
 .combo-box {
     -fx-background-color: #F8FAFC;
     -fx-background-radius: 8;
-    -fx-border-color: transparent;
+    -fx-border-color: #e2e8f0;
     -fx-border-radius: 8;
-    -fx-padding: 0 14 0 14;
-    -fx-font-size: 13px;
-    -fx-min-height: 40;
-    -fx-max-height: 40;
-    -fx-pref-height: 40;
+    -fx-font-size: 14px;
 }
 
-.combo-box:focused {
-    -fx-background-color: white;
-    -fx-border-color: #38BDF8;
-    -fx-border-width: 2;
-}
-
+/* This targets the EDITABLE text field where selected value shows */
+.combo-box > .text-field,
 .combo-box .text-field {
     -fx-background-color: transparent;
-    -fx-padding: 0;
+    -fx-font-size: 14px;
+    -fx-fill: #000000;
+    -fx-text-fill: #000000;
+    -fx-color: #000000;
 }
 
-.combo-box .list-cell {
-    -fx-padding: 8 14 8 14;
-    -fx-font-size: 13px;
+/* The arrow button - try making it smaller */
+.combo-box .combo-box-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 8 0 8;
+}
+
+/* The actual display node */
+.combo-box .combo-box-display-node {
+    -fx-text-fill: #000000;
 }
 
 /* ===== DatePicker Styling ===== */
