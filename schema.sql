@@ -1,27 +1,25 @@
--- NBDA v2.1 - Fresh Database Schema
--- Run this to create NEW system (not migration)
+-- NBDA v2.1 - Database Schema
+-- Run this once to create the database
 
-DROP DATABASE IF EXISTS blood_archive;
-CREATE DATABASE blood_archive;
+CREATE DATABASE IF NOT EXISTS blood_archive;
 USE blood_archive;
 
 -- 1. Users Table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
+    staff_id VARCHAR(20) UNIQUE NULL,
     username VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'STAFF',
-    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Donors Table (v2.1 - with External ID Mapping)
-CREATE TABLE donors (
-    donor_id INT PRIMARY KEY AUTO_INCREMENT,
-    external_card_id VARCHAR(50) UNIQUE DEFAULT NULL,
-    external_source VARCHAR(20) DEFAULT 'NONE',
+-- 2. Donors Table (v2.2 - Transient Authentication Model)
+CREATE TABLE IF NOT EXISTS donors (
+    donor_id VARCHAR(20) PRIMARY KEY, -- Format: NBDA-YYYY-00001
     first_name VARCHAR(50) NOT NULL,
     middle_name VARCHAR(50) NOT NULL DEFAULT '',
     last_name VARCHAR(50) NOT NULL,
@@ -36,10 +34,24 @@ CREATE TABLE donors (
     UNIQUE KEY uq_donor_identity (first_name, middle_name, last_name, birth_date, contact_no)
 );
 
+-- Donor ID Counter Table for generating sequential IDs
+CREATE TABLE IF NOT EXISTS donor_id_counter (
+    id_prefix VARCHAR(10) PRIMARY KEY, -- e.g., 'NBDA-2026'
+    last_number INT NOT NULL DEFAULT 0
+);
+
+-- Bag ID Counter Table for generating sequential IDs  
+CREATE TABLE IF NOT EXISTS bag_id_counter (
+    id_prefix VARCHAR(15) PRIMARY KEY, -- e.g., 'BAG-20260429-'
+    last_number INT NOT NULL DEFAULT 0
+);
+
 -- 3. Donor Screening Table
-CREATE TABLE donor_screening (
+CREATE TABLE IF NOT EXISTS donor_screening (
     screening_id INT PRIMARY KEY AUTO_INCREMENT,
-    donor_id INT NOT NULL,
+    donor_id VARCHAR(20) NOT NULL,
+    auth_id_type ENUM('NATIONAL_ID', 'STUDENT_ID', 'BARANGAY_ID', 'PRC_CARD', 'DRIVERS_LICENSE',
+        'PASSPORT', 'UMID', 'VOTERS_ID', 'SSS_GSIS', 'SENIOR_PWD_ID', 'EMPLOYEE_ID', 'OTHER') NOT NULL,
     screened_by INT NULL,
     screening_date DATE NOT NULL,
     intended_collection_date DATE NOT NULL,
@@ -59,15 +71,15 @@ CREATE TABLE donor_screening (
     had_recent_operation TINYINT(1) NOT NULL DEFAULT 0,
     currently_pregnant TINYINT(1) NOT NULL DEFAULT 0,
     screening_status ENUM('ELIGIBLE', 'TEMPORARILY_DEFERRED') NOT NULL,
-    decision_reason VARCHAR(255) NOT NULL,
+    decision_reason TEXT NOT NULL,
     next_eligible_date DATE NULL,
-    CONSTRAINT fk_screening_donor FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON DELETE RESTRICT
+    CONSTRAINT fk_screening_donor FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 -- 4. Blood Inventory Table
-CREATE TABLE blood_inventory (
+CREATE TABLE IF NOT EXISTS blood_inventory (
     bag_id VARCHAR(32) PRIMARY KEY,
-    donor_id INT NOT NULL,
+    donor_id VARCHAR(20) NOT NULL,
     screening_id INT NOT NULL,
     blood_type ENUM('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-') NOT NULL,
     collection_date DATE NOT NULL,
@@ -85,6 +97,9 @@ CREATE TABLE blood_inventory (
     tti_malaria ENUM('NON_REACTIVE', 'REACTIVE') NULL,
     tti_overall_status ENUM('CLEARED', 'REACTIVE') NULL,
     tti_remarks TEXT NULL,
+    tti_tested_at DATETIME NULL,
+    tti_tested_by INT NULL,
+    tti_test_kit VARCHAR(120) NULL,
     -- Issue fields
     issued_at DATETIME NULL,
     issue_patient_name VARCHAR(100) NULL,
@@ -94,12 +109,13 @@ CREATE TABLE blood_inventory (
     blood_request_no VARCHAR(50) NULL,
     crossmatch_status ENUM('COMPATIBLE', 'NOT_REQUIRED', 'INCOMPATIBLE', 'PENDING') NULL,
     issued_by INT NULL,
-    FOREIGN KEY (donor_id) REFERENCES donors(donor_id),
-    FOREIGN KEY (screening_id) REFERENCES donor_screening(screening_id)
+    issue_notes VARCHAR(255) NULL,
+    CONSTRAINT fk_inventory_donor FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON UPDATE CASCADE,
+    CONSTRAINT fk_inventory_screening FOREIGN KEY (screening_id) REFERENCES donor_screening(screening_id)
 );
 
 -- 5. Audit Log
-CREATE TABLE audit_log (
+CREATE TABLE IF NOT EXISTS audit_log (
     audit_id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NULL,
     event_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -118,7 +134,3 @@ CREATE INDEX idx_inventory_expiry ON blood_inventory(expiry_date);
 CREATE INDEX idx_inventory_issue_status ON blood_inventory(issued_at);
 CREATE INDEX idx_screening_collection_date ON donor_screening(intended_collection_date);
 CREATE INDEX idx_audit_event_time ON audit_log(event_time);
-
--- Insert default admin user (username: admin, password: admin123)
-INSERT INTO users (username, password_hash, first_name, last_name, role, is_admin) 
-VALUES ('admin', '$2a$10$r7O0Cv0m7k7k7k7k7k7k7O7O0Cv0m7k7k7k7k7k7k7O0Cv0m7k7', 'System', 'Administrator', 'ADMIN', TRUE);

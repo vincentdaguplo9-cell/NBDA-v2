@@ -16,11 +16,29 @@ public class AppShellController {
     @FXML private Button recordDonationButton;
     @FXML private Button inventoryButton;
     @FXML private Button recordsButton;
+    @FXML private Button userManagementButton;
     @FXML private Button logoutButton;
     @FXML private StackPane contentArea;
+    @FXML private StackPane logoIcon;
 
     @FXML
     public void initialize() {
+        logoIcon.getChildren().add(IconFactory.createIcon("ANCHOR_DROP", "NB", "#E74C3C", 28.0));
+        IconFactory.install(dashboardButton, "DASHBOARD", "D");
+        IconFactory.install(registrationButton, "USER_PLUS", "R");
+        IconFactory.install(recordDonationButton, "USER", "R");
+        IconFactory.install(inventoryButton, "TINT", "I");
+        IconFactory.install(recordsButton, "LIST", "L");
+        IconFactory.install(logoutButton, "SIGN_OUT", "O");
+
+        // Only show User Management button for admin users
+        if (UserSession.getCurrentUser() != null && UserSession.getCurrentUser().isAdmin()) {
+            IconFactory.install(userManagementButton, "USERS", "U");
+            userManagementButton.setVisible(true);
+        } else {
+            userManagementButton.setVisible(false);
+        }
+
         showDashboard();
     }
 
@@ -52,6 +70,12 @@ public class AppShellController {
     private void showRecords() {
         loadContent("RecordsView.fxml");
         activate(recordsButton);
+    }
+
+    @FXML
+    private void showUserManagement() {
+        loadContent("UserManagement.fxml");
+        activate(userManagementButton);
     }
 
     @FXML
@@ -99,6 +123,7 @@ public class AppShellController {
         recordDonationButton.getStyleClass().remove("nav-active");
         inventoryButton.getStyleClass().remove("nav-active");
         recordsButton.getStyleClass().remove("nav-active");
+        userManagementButton.getStyleClass().remove("nav-active");
         activeButton.getStyleClass().add("nav-active");
     }
 }

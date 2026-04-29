@@ -26,15 +26,128 @@ public final class SchemaInitializer {
         createDatabaseIfMissing();
         try (Connection conn = DBConnection.getConnection()) {
             applySchemaFile(conn);
-            ensureUsersTable(conn);
             upgradeDonorNameSchema(conn);
-            upgradeOperationalSchema(conn);
+            fixDonorIdColumnType(conn);
             seedDefaultUsers(conn);
         } catch (IOException e) {
             throw new RuntimeException("Schema file not found: " + SCHEMA_FILE, e);
         } catch (SQLException e) {
             throw new RuntimeException("Unable to initialize database schema from schema.sql.", e);
         }
+    }
+
+    private static void fixDonorIdColumnType(Connection conn) {
+        // Check if donor_id column is INT and needs to be changed to VARCHAR(20)
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            ResultSet rs = null;
+            try {
+                rs = metaData.getColumns(conn.getCatalog(), null, "donors", "donor_id");
+                if (rs.next()) {
+                    String dataType = rs.getString("TYPE_NAME");
+                    if (dataType != null && dataType.toUpperCase().contains("INT")) {
+                        // Get all foreign keys referencing donors.donor_id
+                        List<String> screeningFKs = getForeignKeys(conn, "donor_screening", "donors");
+                        List<String> inventoryFKs = getForeignKeys(conn, "blood_inventory", "donors");
+                        
+                        try (Statement st = conn.createStatement()) {
+                            // Drop ALL foreign key constraints
+                            for (String fk : screeningFKs) {
+                                try {
+                                    st.execute("ALTER TABLE donor_screening DROP FOREIGN KEY " + fk);
+                                } catch (SQLException e) {
+                                    // Ignore errors during drop
+                                }
+                            }
+                            for (String fk : inventoryFKs) {
+                                try {
+                                    st.execute("ALTER TABLE blood_inventory DROP FOREIGN KEY " + fk);
+                                } catch (SQLException e) {
+                                    // Ignore errors during drop
+                                }
+                            }
+
+                            // Alter the column types
+                            try {
+                                st.execute("ALTER TABLE donors MODIFY COLUMN donor_id VARCHAR(20) NOT NULL");
+                            } catch (SQLException e) {
+                                // Ignore if already done
+                            }
+                            try {
+                                st.execute("ALTER TABLE donor_screening MODIFY COLUMN donor_id VARCHAR(20)");
+                            } catch (SQLException e) {
+                                // Ignore if already done
+                            }
+                            try {
+                                st.execute("ALTER TABLE blood_inventory MODIFY COLUMN donor_id VARCHAR(20)");
+                            } catch (SQLException e) {
+                                // Ignore if already done
+                            }
+
+                            // Re-add foreign key constraints with proper names
+                            try {
+                                st.execute("ALTER TABLE donor_screening ADD CONSTRAINT fk_screening_donor FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON UPDATE CASCADE ON DELETE RESTRICT");
+                            } catch (SQLException e) {
+                                // Ignore if already exists
+                            }
+                            try {
+                                st.execute("ALTER TABLE blood_inventory ADD CONSTRAINT fk_inventory_donor FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON UPDATE CASCADE");
+                            } catch (SQLException e) {
+                                // Ignore if already exists
+                            }
+                        }
+                    }
+                }
+            } finally {
+                if (rs != null) rs.close();
+            }
+        } catch (SQLException e) {
+            // Log but don't fail - the schema might already be correct
+            System.out.println("Schema migration warning: " + e.getMessage());
+        }
+        
+        // Also update decision_reason column to TEXT if needed
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            try (ResultSet rs = metaData.getColumns(conn.getCatalog(), null, "donor_screening", "decision_reason")) {
+                if (rs.next()) {
+                    String dataType = rs.getString("TYPE_NAME");
+                    if (dataType != null && dataType.toUpperCase().contains("VARCHAR")) {
+                        try (Statement st = conn.createStatement()) {
+                            st.execute("ALTER TABLE donor_screening MODIFY COLUMN decision_reason TEXT NOT NULL");
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            // Ignore - column might already be TEXT
+        }
+        
+        // Create bag_id_counter table if it doesn't exist
+        try (Statement st = conn.createStatement()) {
+            st.execute("CREATE TABLE IF NOT EXISTS bag_id_counter (" +
+                    "id_prefix VARCHAR(15) PRIMARY KEY, " +
+                    "last_number INT NOT NULL DEFAULT 0)");
+        } catch (SQLException e) {
+            // Ignore - table might already exist
+        }
+    }
+
+    private static List<String> getForeignKeys(Connection conn, String tableName, String refTableName) throws SQLException {
+        List<String> fks = new ArrayList<>();
+        String sql = "SELECT CONSTRAINT_NAME FROM information_schema.REFERENTIAL_CONSTRAINTS " +
+                     "WHERE CONSTRAINT_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, conn.getCatalog());
+            ps.setString(2, tableName);
+            ps.setString(3, refTableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    fks.add(rs.getString("CONSTRAINT_NAME"));
+                }
+            }
+        }
+        return fks;
     }
 
     private static void createDatabaseIfMissing() {
@@ -52,13 +165,20 @@ public final class SchemaInitializer {
     }
 
     private static void applySchemaFile(Connection conn) throws IOException, SQLException {
+        String dbName = DBConnection.getConfiguredDatabaseName();
+        
+        conn.setCatalog(dbName);
+        
+        try (Statement st = conn.createStatement()) {
+            st.execute("USE `" + dbName + "`");
+        }
+        
         String sqlText = Files.readString(SCHEMA_FILE, StandardCharsets.UTF_8);
         List<String> statements = splitStatements(sqlText);
         try (Statement st = conn.createStatement()) {
             for (String statement : statements) {
                 String trimmed = statement.trim();
-                if (trimmed.isEmpty() || startsWithIgnoreCase(trimmed, "CREATE DATABASE")
-                        || startsWithIgnoreCase(trimmed, "USE ")) {
+                if (trimmed.isEmpty()) {
                     continue;
                 }
                 try {
@@ -79,6 +199,7 @@ public final class SchemaInitializer {
         }
 
         ensureColumn(conn, "donors", "first_name", "ALTER TABLE donors ADD COLUMN first_name VARCHAR(50) NOT NULL");
+        ensureColumn(conn, "donors", "middle_name", "ALTER TABLE donors ADD COLUMN middle_name VARCHAR(50) NOT NULL DEFAULT '' AFTER first_name");
         ensureColumn(conn, "donors", "last_name", "ALTER TABLE donors ADD COLUMN last_name VARCHAR(50) NOT NULL");
 
         if (columnExists(conn, "donors", "full_name")) {
@@ -89,9 +210,13 @@ public final class SchemaInitializer {
 
         if (!indexExists(conn, "donors", "uq_donor_identity")) {
             try (Statement st = conn.createStatement()) {
-                st.execute("CREATE UNIQUE INDEX uq_donor_identity ON donors (first_name, last_name, birth_date, contact_no)");
+                st.execute("CREATE UNIQUE INDEX uq_donor_identity ON donors (first_name, middle_name, last_name, birth_date, contact_no)");
             }
         }
+
+        // Drop external_card_id and external_source columns if they exist (v2.2 migration)
+        dropColumnIfExists(conn, "donors", "external_card_id");
+        dropColumnIfExists(conn, "donors", "external_source");
     }
 
     private static void ensureUsersTable(Connection conn) throws SQLException {
@@ -114,6 +239,9 @@ public final class SchemaInitializer {
     private static void upgradeOperationalSchema(Connection conn) throws SQLException {
         ensureColumn(conn, "donor_screening", "screened_by",
                 "ALTER TABLE donor_screening ADD COLUMN screened_by INT NULL AFTER donor_id");
+        ensureColumn(conn, "donor_screening", "auth_id_type",
+                "ALTER TABLE donor_screening ADD COLUMN auth_id_type ENUM('NATIONAL_ID', 'STUDENT_ID', 'BARANGAY_ID', 'PRC_CARD', 'DRIVERS_LICENSE', " +
+                        "'PASSPORT', 'UMID', 'VOTERS_ID', 'SSS_GSIS', 'SENIOR_PWD_ID', 'EMPLOYEE_ID', 'OTHER') NOT NULL AFTER donor_id");
         ensureColumn(conn, "donor_screening", "guardian_consent_provided",
                 "ALTER TABLE donor_screening ADD COLUMN guardian_consent_provided TINYINT(1) NOT NULL DEFAULT 0 AFTER slept_hours");
 
@@ -123,8 +251,8 @@ public final class SchemaInitializer {
                 "ALTER TABLE blood_inventory ADD COLUMN tti_tested_by INT NULL AFTER tti_tested_at");
         ensureColumn(conn, "blood_inventory", "tti_test_kit",
                 "ALTER TABLE blood_inventory ADD COLUMN tti_test_kit VARCHAR(120) NULL AFTER tti_tested_by");
-        ensureColumn(conn, "blood_inventory", "crossmatch_status",
-                "ALTER TABLE blood_inventory ADD COLUMN crossmatch_status ENUM('PENDING', 'COMPATIBLE', 'INCOMPATIBLE', 'NOT_REQUIRED') NOT NULL DEFAULT 'PENDING' AFTER disposition_notes");
+        ensureColumn(conn, "blood_inventory", "ttis_remarks",
+                "ALTER TABLE blood_inventory ADD COLUMN tti_remarks TEXT NULL");
         ensureColumn(conn, "blood_inventory", "issue_patient_name",
                 "ALTER TABLE blood_inventory ADD COLUMN issue_patient_name VARCHAR(150) NULL AFTER crossmatch_status");
         ensureColumn(conn, "blood_inventory", "patient_hospital_no",
@@ -156,26 +284,35 @@ public final class SchemaInitializer {
     }
 
     private static void seedDefaultUsers(Connection conn) throws SQLException {
+        // Add staff_id column if it doesn't exist
+        ensureColumn(conn, "users", "staff_id",
+                "ALTER TABLE users ADD COLUMN staff_id VARCHAR(20) UNIQUE NULL AFTER user_id");
+
+        // Assign staff_id to existing users that don't have one
+        assignStaffIdsToExistingUsers(conn);
+
         if (userExists(conn, "admin")) {
             return;
         }
 
-        String sql = "INSERT INTO users (username, password_hash, first_name, last_name, role, active) VALUES (?, ?, ?, ?, ?, 1)";
+        String sql = "INSERT INTO users (staff_id, username, password_hash, first_name, last_name, role, active) VALUES (?, ?, ?, ?, ?, ?, 1)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, "admin");
-            ps.setString(2, PasswordUtil.hash("admin"));
-            ps.setString(3, "System");
-            ps.setString(4, "Administrator");
-            ps.setString(5, "ADMIN");
+            ps.setString(1, "NBDA-ADM-001");
+            ps.setString(2, "admin");
+            ps.setString(3, PasswordUtil.hash("admin"));
+            ps.setString(4, "System");
+            ps.setString(5, "Administrator");
+            ps.setString(6, "ADMIN");
             ps.executeUpdate();
         }
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, "staff");
-            ps.setString(2, PasswordUtil.hash("staff"));
-            ps.setString(3, "Blood");
-            ps.setString(4, "Staff");
-            ps.setString(5, "STAFF");
+            ps.setString(1, "NBDA-STF-001");
+            ps.setString(2, "staff");
+            ps.setString(3, PasswordUtil.hash("staff"));
+            ps.setString(4, "Blood");
+            ps.setString(5, "Staff");
+            ps.setString(6, "STAFF");
             ps.executeUpdate();
         }
     }
@@ -196,7 +333,7 @@ public final class SchemaInitializer {
                 NameParts parts = splitFullName(rs.getString("full_name"));
                 update.setString(1, parts.firstName);
                 update.setString(2, parts.lastName);
-                update.setInt(3, rs.getInt("donor_id"));
+                update.setString(3, rs.getString("donor_id"));
                 update.executeUpdate();
             }
         }
@@ -235,6 +372,46 @@ public final class SchemaInitializer {
         DatabaseMetaData metaData = conn.getMetaData();
         try (ResultSet rs = metaData.getColumns(conn.getCatalog(), null, tableName, columnName)) {
             return rs.next();
+        }
+    }
+
+    private static void assignStaffIdsToExistingUsers(Connection conn) throws SQLException {
+        // Get all users without staff_id
+        String selectSql = "SELECT user_id, role FROM users WHERE staff_id IS NULL";
+        String updateSql = "UPDATE users SET staff_id = ? WHERE user_id = ?";
+        
+        try (PreparedStatement selectPs = conn.prepareStatement(selectSql);
+             ResultSet rs = selectPs.executeQuery();
+             PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
+            
+            while (rs.next()) {
+                int userId = rs.getInt("user_id");
+                String role = rs.getString("role");
+                
+                // Generate staff_id based on role
+                String prefix = "NBDA-ADM-";
+                if (!"ADMIN".equalsIgnoreCase(role)) {
+                    prefix = "NBDA-STF-";
+                }
+                
+                // Count existing users with this role to generate sequential number
+                String countSql = "SELECT COUNT(*) as cnt FROM users WHERE role = ? AND staff_id IS NOT NULL";
+                int count = 0;
+                try (PreparedStatement countPs = conn.prepareStatement(countSql)) {
+                    countPs.setString(1, role);
+                    try (ResultSet countRs = countPs.executeQuery()) {
+                        if (countRs.next()) {
+                            count = countRs.getInt("cnt");
+                        }
+                    }
+                }
+                
+                String staffId = prefix + String.format("%03d", count + 1);
+                
+                updatePs.setString(1, staffId);
+                updatePs.setInt(2, userId);
+                updatePs.executeUpdate();
+            }
         }
     }
 

@@ -1,0 +1,45 @@
+/* Admin Icon Circles */
+.icon-circle-blue {
+    -fx-background-color: #ebf5fb;
+    -fx-background-radius: 50%;
+    -fx-min-width: 40;
+    -fx-min-height: 40;
+}
+
+.icon-circle-orange {
+    -fx-background-color: #fef5e7;
+    -fx-background-radius: 50%;
+    -fx-min-width: 40;
+    -fx-min-height: 40;
+}
+
+.icon-text-small {
+    -fx-font-size: 16px;
+}
+
+/* Admin Card Values */
+.card-value-small {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.card-subtitle-muted {
+    -fx-font-size: 11px;
+    -fx-text-fill: #95a5a6;
+    -fx-font-weight: bold;
+    -fx-text-transform: uppercase;
+}
+
+/* Specialized Table for User Management */
+.modern-table .table-row-cell:filled {
+    -fx-cell-size: 50; /* Slightly taller rows for personnel list */
+}
+
+/* Search Bar Consistency */
+.modern-search-field {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dcdde1;
+    -fx-border-radius: 6;
+    -fx-padding: 8 12;
+}

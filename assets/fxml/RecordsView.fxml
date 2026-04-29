@@ -32,6 +32,10 @@
                             <TextField fx:id="donorSearchField" prefWidth="300.0" promptText="Search by name, ID, or contact..." styleClass="modern-search-field" />
                             <Button onAction="#searchDonors" styleClass="button-primary-small" text="Search" />
                         </HBox>
+                        <HBox spacing="10.0" alignment="CENTER_LEFT">
+                            <TextField fx:id="staffSearchField" prefWidth="300.0" promptText="Search by staff name or ID..." styleClass="modern-search-field" />
+                            <Button onAction="#searchDonorsByStaff" styleClass="button-primary-small" text="By Staff" />
+                        </HBox>
                         <TableView fx:id="donorTable" onMouseClicked="#onDonorDoubleClick" styleClass="modern-table" VBox.vgrow="ALWAYS">
                             <columns>
                                 <TableColumn fx:id="donorIdColumn" prefWidth="60.0" text="ID" />
