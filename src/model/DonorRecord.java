@@ -4,9 +4,7 @@ import java.time.LocalDate;
 
 // Donor masterlist projection with External ID mapping.
 public class DonorRecord {
-    private final int donorId;
-    private final String externalCardId;
-    private final String externalSource;
+    private final String donorId;
     private final String firstName;
     private final String middleName;
     private final String lastName;
@@ -15,15 +13,16 @@ public class DonorRecord {
     private final String bloodType;
     private final String barangay;
     private final String contactNo;
+    private final String externalCardId;
+    private final String idSource;
     private final LocalDate lastSuccessfulDonation;
 
-    public DonorRecord(int donorId, String externalCardId, String externalSource,
+    public DonorRecord(String donorId,
                        String firstName, String middleName, String lastName, String sex,
                        LocalDate birthDate, String bloodType, String barangay, String contactNo,
+                       String externalCardId, String idSource,
                        LocalDate lastSuccessfulDonation) {
         this.donorId = donorId;
-        this.externalCardId = externalCardId;
-        this.externalSource = externalSource;
         this.firstName = firstName;
         this.middleName = middleName;
         this.lastName = lastName;
@@ -32,19 +31,13 @@ public class DonorRecord {
         this.bloodType = bloodType;
         this.barangay = barangay;
         this.contactNo = contactNo;
+        this.externalCardId = externalCardId;
+        this.idSource = idSource;
         this.lastSuccessfulDonation = lastSuccessfulDonation;
     }
 
-    public int getDonorId() {
+    public String getDonorId() {
         return donorId;
-    }
-
-    public String getExternalCardId() {
-        return externalCardId;
-    }
-
-    public String getExternalSource() {
-        return externalSource;
     }
 
     public String getFirstName() {
@@ -79,11 +72,32 @@ public class DonorRecord {
         return contactNo;
     }
 
+    public String getExternalCardId() {
+        return externalCardId;
+    }
+
+    public String getIdSource() {
+        return idSource;
+    }
+
     public LocalDate getLastSuccessfulDonation() {
         return lastSuccessfulDonation;
     }
 
     public String getDisplayName() {
-        return (firstName + " " + lastName).trim();
+        StringBuilder out = new StringBuilder(firstName == null ? "" : firstName);
+        if (middleName != null && !middleName.isBlank()) {
+            if (out.length() > 0) {
+                out.append(' ');
+            }
+            out.append(middleName);
+        }
+        if (lastName != null && !lastName.isBlank()) {
+            if (out.length() > 0) {
+                out.append(' ');
+            }
+            out.append(lastName);
+        }
+        return out.toString().trim();
     }
 }

@@ -5,159 +5,145 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.Circle?>
 
-<VBox spacing="0" styleClass="main-container" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.RecordDonationController">
+<VBox spacing="0" styleClass="main-container" stylesheets="@../css/style.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.RecordDonationController">
     
-    <HBox alignment="CENTER_LEFT" prefHeight="70.0" spacing="20.0" styleClass="top-nav">
-        <padding><Insets left="25.0" right="25.0" /></padding>
-        <VBox spacing="2.0">
-            <Label styleClass="page-eyebrow" text="Donor Services" />
+    <HBox alignment="CENTER_LEFT" prefHeight="80.0" spacing="20.0" styleClass="top-nav">
+        <padding><Insets left="40.0" right="40.0" /></padding>
+        <VBox alignment="CENTER_LEFT" spacing="2.0">
+            <Label styleClass="page-eyebrow" text="BLOOD SERVICES" />
             <Label styleClass="app-logo-text" text="Record Return Donation" />
         </VBox>
         <Region HBox.hgrow="ALWAYS" />
-        
+        <Button onAction="#clearForm" styleClass="button-secondary" text="Reset Form" />
     </HBox>
 
     <ScrollPane fitToWidth="true" styleClass="content-scroll-pane" VBox.vgrow="ALWAYS">
-        <VBox spacing="25.0">
-            <padding><Insets bottom="30.0" left="30.0" right="30.0" top="30.0" /></padding>
+        <VBox spacing="35.0">
+            <padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
 
-            <HBox spacing="25.0">
-                <VBox spacing="20.0" styleClass="glass-card" HBox.hgrow="ALWAYS">
-                    <VBox spacing="5.0">
+            <HBox spacing="30.0">
+                <!-- Donor Lookup Section -->
+                <VBox spacing="25.0" styleClass="glass-card" HBox.hgrow="ALWAYS">
+                    <VBox spacing="6.0">
                         <Label styleClass="card-title" text="Find Returning Donor" />
                         <Label styleClass="card-subtitle" text="Search by name or contact number" />
                     </VBox>
-                    
                     <Separator />
 
-                    <VBox spacing="10.0" styleClass="search-section-container">
-                        <Label styleClass="field-label" text="Search Criteria" />
-                        <HBox spacing="10.0">
-                            <TextField fx:id="searchField" promptText="Enter name or contact..." styleClass="modern-search-field" HBox.hgrow="ALWAYS" />
-                            <Button fx:id="searchButton" onAction="#searchDonor" styleClass="button-primary-small" text="Find Donor" />
+                    <VBox spacing="20.0">
+                        <HBox spacing="15.0" alignment="BOTTOM_LEFT">
+                            <VBox spacing="8.0" HBox.hgrow="ALWAYS">
+                                <Label styleClass="field-label" text="Donor Search Criteria" />
+                                <TextField fx:id="searchField" promptText="Enter Donor ID or Name..." styleClass="modern-input" />
+                            </VBox>
+                            <Button fx:id="searchButton" onAction="#searchDonor" prefHeight="45.0" styleClass="button-primary-small" text="Lookup Donor" />
                         </HBox>
-                        <VBox fx:id="donorInfoBox" spacing="5.0" styleClass="info-display-box">
-                            <Label fx:id="donorInfoLabel" styleClass="info-text-main" text="Awaiting search..." />
-                            <Label fx:id="eligibilityStatusLabel" styleClass="info-text-sub" text="Status will appear here" />
+
+                        <VBox fx:id="donorInfoBox" spacing="8.0" styleClass="status-container-active">
+                            <Label fx:id="donorInfoLabel" styleClass="status-text-bold" text="Awaiting system search..." />
+                            <Label fx:id="eligibilityStatusLabel" styleClass="status-text-light" text="Search for a donor to see eligibility details" />
                         </VBox>
+
+                        <VBox spacing="10.0">
+                            <Label styleClass="sidebar-section-header" text="DONOR INFORMATION (READ-ONLY)" />
+                            <Separator />
+                        </VBox>
+
+                        <GridPane hgap="20.0" vgap="20.0">
+                            <columnConstraints>
+                                <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
+                                <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
+                            </columnConstraints>
+                            
+                            <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                <Label styleClass="field-label" text="Last Name" />
+                                <TextField fx:id="lastNameField" editable="false" styleClass="modern-input" />
+                            </VBox>
+                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                <Label styleClass="field-label" text="First Name" />
+                                <TextField fx:id="firstNameField" editable="false" styleClass="modern-input" />
+                            </VBox>
+                            <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                <Label styleClass="field-label" text="Blood Type" />
+                                <ComboBox fx:id="bloodTypeCombo" disable="true" maxWidth="Infinity" styleClass="modern-combo" />
+                            </VBox>
+                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                <Label styleClass="field-label" text="Barangay" />
+                                <ComboBox fx:id="barangayCombo" disable="true" maxWidth="Infinity" styleClass="modern-combo" />
+                            </VBox>
+                        </GridPane>
                     </VBox>
-
-                    <Region prefHeight="10.0" /> <VBox spacing="5.0">
-                        <Label styleClass="card-title-small" text="Donor Information (Read-Only)" />
-                        <Separator />
-                    </VBox>
-
-                    <GridPane hgap="15.0" vgap="15.0">
-                        <columnConstraints>
-                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
-                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
-                        </columnConstraints>
-                        
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                            <Label styleClass="field-label" text="External Card ID" />
-                            <TextField fx:id="externalCardIdField" editable="false" promptText="RC-12345" styleClass="modern-input-readonly" />
-                        </VBox>
-                        
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                            <Label styleClass="field-label" text="ID Source" />
-                            <TextField fx:id="externalSourceField" editable="false" promptText="PRC/DOH" styleClass="modern-input-readonly" />
-                        </VBox>
-                        
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
-                            <Label styleClass="field-label" text="First Name" />
-                            <TextField fx:id="firstNameField" editable="false" promptText="Juan" styleClass="modern-input-readonly" />
-                        </VBox>
-                        
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                            <Label styleClass="field-label" text="Last Name" />
-                            <TextField fx:id="lastNameField" editable="false" promptText="Dela Cruz" styleClass="modern-input-readonly" />
-                        </VBox>
-
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
-                            <Label styleClass="field-label" text="Blood Type" />
-                            <ComboBox fx:id="bloodTypeCombo" editable="false" maxWidth="Infinity" styleClass="modern-combo" />
-                        </VBox>
-
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
-                            <Label styleClass="field-label" text="Barangay" />
-                            <ComboBox fx:id="barangayCombo" editable="false" maxWidth="Infinity" styleClass="modern-combo" />
-                        </VBox>
-                    </GridPane>
                 </VBox>
 
-                <VBox spacing="20.0" styleClass="glass-card" HBox.hgrow="ALWAYS">
-                    <VBox spacing="5.0">
-                        <Label styleClass="card-title" text="Medical Screening" />
-                        <Label styleClass="card-subtitle" text="Vital signs entry and donation details" />
+                <!-- Medical Screening Section -->
+                <VBox spacing="25.0" styleClass="glass-card" prefWidth="480.0">
+                    <VBox spacing="6.0">
+                        <Label styleClass="card-title" text="Medical Update" />
+                        <Label styleClass="card-subtitle" text="Vitals for today's collection" />
                     </VBox>
-
                     <Separator />
 
-                    <GridPane hgap="15.0" vgap="15.0">
+                    <GridPane hgap="20.0" vgap="20.0">
                         <columnConstraints>
-                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="33.0" />
-                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="33.0" />
-                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="33.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
                         </columnConstraints>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="0">
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="0">
                             <Label styleClass="field-label" text="Collection Date *" />
                             <DatePicker fx:id="collectionDatePicker" maxWidth="Infinity" styleClass="modern-datepicker" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="2" GridPane.rowIndex="0">
-                            <Label styleClass="field-label" text="Vol (mL) *" />
-                            <TextField fx:id="volumeField" promptText="450" styleClass="modern-input" />
-                        </VBox>
-
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
                             <Label styleClass="field-label" text="Weight (kg) *" />
                             <TextField fx:id="weightField" promptText="50" styleClass="modern-input" />
                         </VBox>
-
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="1">
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
                             <Label styleClass="field-label" text="BP (sys/dia) *" />
                             <TextField fx:id="bpField" promptText="120/80" styleClass="modern-input" />
                         </VBox>
-
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
-                            <Label styleClass="field-label" text="Hemog (g/dL) *" />
-                            <TextField fx:id="hemoglobinField" promptText="13.5" styleClass="modern-input" />
-                        </VBox>
-
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
                             <Label styleClass="field-label" text="Pulse (bpm) *" />
                             <TextField fx:id="pulseField" promptText="72" styleClass="modern-input" />
                         </VBox>
-
-                        <VBox spacing="5.0" GridPane.columnIndex="2" GridPane.rowIndex="2">
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
                             <Label styleClass="field-label" text="Temp (C) *" />
                             <TextField fx:id="temperatureField" promptText="36.8" styleClass="modern-input" />
                         </VBox>
-                        
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="3">
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                            <Label styleClass="field-label" text="Hemog (g/dL) *" />
+                            <TextField fx:id="hemoglobinField" promptText="13.5" styleClass="modern-input" />
+                        </VBox>
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                            <Label styleClass="field-label" text="Vol (mL) *" />
+                            <TextField fx:id="volumeField" promptText="450" styleClass="modern-input" />
+                        </VBox>
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="4">
                             <Label styleClass="field-label" text="Sleep Hours *" />
                             <TextField fx:id="sleptHoursField" promptText="8" styleClass="modern-input" />
                         </VBox>
                     </GridPane>
 
-                    <Separator />
+                    <Region VBox.vgrow="ALWAYS" />
 
-                    <VBox spacing="5.0">
-                        <Label styleClass="field-label" text="Wait Status" />
-                        <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="status-container-waiting">
-                            <Circle fill="#f1c40f" radius="5.0" />
-                            <Label fx:id="waitTimeValueLabel" styleClass="status-text-bold" text="--" />
-                            <Label fx:id="waitTimeHintLabel" styleClass="status-text-light" text="Search donor first" />
+                    <VBox spacing="10.0">
+                        <Label styleClass="field-label" text="Eligibility Validation" />
+                        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="status-container-active">
+                            <Circle fill="#f59e0b" radius="6.0" />
+                            <VBox spacing="2.0">
+                                <Label fx:id="waitTimeValueLabel" styleClass="status-text-bold" text="Awaiting Search" />
+                                <Label fx:id="waitTimeHintLabel" styleClass="status-text-light" text="Search for a donor to verify eligibility" />
+                            </VBox>
                         </HBox>
                     </VBox>
                 </VBox>
             </HBox>
 
-            <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="glass-card-footer">
-                <VBox spacing="10.0" HBox.hgrow="ALWAYS">
-                    <Label styleClass="card-title-small" text="Readiness Checklist" />
-                    <FlowPane hgap="20.0" vgap="10.0">
+            <!-- Footer Section -->
+            <HBox alignment="CENTER_LEFT" spacing="30.0" styleClass="glass-card-footer">
+                <VBox spacing="15.0" HBox.hgrow="ALWAYS">
+                    <Label styleClass="card-title-small" text="Safety Readiness Checklist" />
+                    <FlowPane hgap="30.0" vgap="15.0">
                         <CheckBox fx:id="hadMealCheckBox" text="Has eaten today" />
                         <CheckBox fx:id="alcoholCheckBox" text="No alcohol (24h)" />
                         <CheckBox fx:id="feverCheckBox" text="No fever/cold" />
@@ -165,11 +151,13 @@
                     </FlowPane>
                 </VBox>
                 
-                <VBox alignment="CENTER_RIGHT" spacing="10.0">
-                    <Label fx:id="resultLabel" styleClass="feedback-text-muted" text="Find donor to begin" />
-                    <HBox alignment="CENTER" spacing="10.0">
-                        <Label fx:id="eligibilityStatusLabel2" styleClass="status-pill-neutral" text="Awaiting" />
-                        <Button fx:id="saveButton" onAction="#recordDonation" prefHeight="45.0" styleClass="button-primary" text="Record Donation" />
+                <Separator orientation="VERTICAL" />
+
+                <VBox alignment="CENTER_RIGHT" spacing="12.0" minWidth="320.0">
+                    <Label fx:id="resultLabel" styleClass="feedback-text" text="Find donor to begin recording..." wrapText="true" alignment="CENTER_RIGHT" />
+                    <HBox alignment="CENTER_RIGHT" spacing="20.0">
+                        <Label fx:id="eligibilityStatusLabel2" styleClass="status-pill" text="Verify" />
+                        <Button fx:id="saveButton" onAction="#recordDonation" prefHeight="55.0" prefWidth="240.0" styleClass="button-primary" text="Confirm &amp; Record Return" />
                     </HBox>
                 </VBox>
             </HBox>

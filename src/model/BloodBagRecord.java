@@ -5,7 +5,7 @@ import java.time.LocalDate;
 // Inventory projection for DOH-compliant blood archive.
 public class BloodBagRecord {
     private final String bagId;
-    private final Integer donorId;
+    private final String donorId;
     private final String donorName;
     private final String barangay;
     private final String bloodType;
@@ -14,7 +14,7 @@ public class BloodBagRecord {
     private final String inventoryStatus;
     private final String ttiStatus;
 
-    public BloodBagRecord(String bagId, Integer donorId, String donorName, String barangay, String bloodType,
+    public BloodBagRecord(String bagId, String donorId, String donorName, String barangay, String bloodType,
                           LocalDate dateCollected, LocalDate dateExpiry, String inventoryStatus, String ttiStatus) {
         this.bagId = bagId;
         this.donorId = donorId;
@@ -31,7 +31,7 @@ public class BloodBagRecord {
         return bagId;
     }
 
-    public Integer getDonorId() {
+    public String getDonorId() {
         return donorId;
     }
 
@@ -63,16 +63,27 @@ public class BloodBagRecord {
         return ttiStatus;
     }
 
-    // Status getter for backward compatibility
+    // Status getter - returns the effective status (considering expiry, TTI status, etc.)
     public String getStatus() {
-        return inventoryStatus;
+        return getEffectiveStatus();
     }
 
     public String getEffectiveStatus() {
-        if (dateExpiry != null && dateExpiry.isBefore(LocalDate.now()) && !"ISSUED".equalsIgnoreCase(inventoryStatus)
-                && !"DISCARDED".equalsIgnoreCase(inventoryStatus)) {
+        // Priority: DISCARDED > REACTIVE (TTI) > EXPIRED > current status
+        if ("DISCARDED".equalsIgnoreCase(inventoryStatus)) {
+            return "DISCARDED";
+        }
+        if ("REACTIVE".equalsIgnoreCase(ttiStatus) && !"ISSUED".equalsIgnoreCase(inventoryStatus)) {
+            return "REACTIVE";
+        }
+        if (dateExpiry != null && dateExpiry.isBefore(LocalDate.now()) 
+                && !"ISSUED".equalsIgnoreCase(inventoryStatus)) {
             return "EXPIRED";
         }
-        return inventoryStatus;
+        // Handle legacy status values
+        if ("CLEARED".equalsIgnoreCase(inventoryStatus) || "AVAILABLE".equalsIgnoreCase(inventoryStatus)) {
+            return "AVAILABLE";
+        }
+        return inventoryStatus != null ? inventoryStatus : "QUARANTINE";
     }
 }

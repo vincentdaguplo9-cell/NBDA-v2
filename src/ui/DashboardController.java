@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.sql.SQLException;
 
 public class DashboardController {
     private static final List<String> BLOOD_TYPES = Arrays.asList("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-");
@@ -83,7 +84,12 @@ public class DashboardController {
         List<BloodBagRecord> inventory = inventoryDAO.fetchInventory();
         Map<String, Long> availableCounts = calculateAvailableCounts(inventory);
         List<IssuanceRecord> issuances = recordsDAO.fetchRecentIssuances();
-        int totalDonors = donorDAO.getTotalDonorCount();
+        int totalDonors = 0;
+        try {
+            totalDonors = donorDAO.getTotalDonorCount();
+        } catch (SQLException e) {
+            System.out.println("Error getting donor count: " + e.getMessage());
+        }
 
         totalBagsLabel.setText(String.valueOf(inventory.size()));
         availableBagsLabel.setText(String.valueOf(availableCounts.values().stream().mapToLong(Long::longValue).sum()));

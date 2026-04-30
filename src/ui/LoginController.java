@@ -28,16 +28,10 @@ public class LoginController {
     @FXML private Label statusLabel;
     @FXML private Button loginButton;
     @FXML private CheckBox showPasswordCheck;
-    @FXML private ImageView brandBg;
 
     @FXML
     public void initialize() {
-        try {
-            Image bg = new Image(getClass().getResourceAsStream("/assets/img/bg.jpg"));
-            brandBg.setImage(bg);
-        } catch (Exception e) {
-            System.err.println("Failed to load background: " + e.getMessage());
-        }
+        // Initialization logic here (CSS handles the background)
     }
 
     @FXML
@@ -64,7 +58,13 @@ public class LoginController {
         LoginResult result = authDAO.login(usernameField.getText(), password);
         if (!result.isSuccess()) {
             statusLabel.setText(result.getMessage());
-            new Alert(Alert.AlertType.WARNING, result.getMessage()).showAndWait();
+            Alert alert = new Alert(Alert.AlertType.WARNING, result.getMessage());
+            alert.setTitle("Login Failed");
+            alert.setHeaderText(null);
+            if (loginButton != null && loginButton.getScene() != null && loginButton.getScene().getWindow() != null) {
+                alert.initOwner(loginButton.getScene().getWindow());
+            }
+            alert.showAndWait();
             return;
         }
 
@@ -72,13 +72,12 @@ public class LoginController {
         try {
             FXMLLoader loader = new FXMLLoader(FxmlView.fxmlUrl("AppShell.fxml"));
             Parent root = loader.load();
-            double width = Screen.getPrimary().getVisualBounds().getWidth();
-            double height = Screen.getPrimary().getVisualBounds().getHeight();
-            Scene scene = new Scene(root, width, height);
-            scene.getStylesheets().add(FxmlView.stylesheet("nbda-modern.css"));
+            Scene scene = new Scene(root, 1200, 800);
+            scene.getStylesheets().add(FxmlView.stylesheet("style.css"));
             Stage stage = (Stage) loginButton.getScene().getWindow();
             stage.setScene(scene);
             stage.setFullScreen(true);
+            stage.setFullScreenExitHint("Press ESC to exit fullscreen");
             stage.setTitle("NBDA - Naval Blood Donation Archive");
         } catch (IOException e) {
             throw new RuntimeException("Failed to open application shell.", e);

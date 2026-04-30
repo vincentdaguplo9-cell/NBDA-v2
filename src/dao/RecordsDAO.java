@@ -23,7 +23,7 @@ import java.util.List;
 public class RecordsDAO {
     public List<DonorRecord> fetchDonors() {
         List<DonorRecord> records = new ArrayList<>();
-        String sql = "SELECT donor_id, first_name, middle_name, last_name, sex, birth_date, blood_type, barangay, contact_no, last_successful_donation " +
+        String sql = "SELECT donor_id, first_name, middle_name, last_name, sex, birth_date, blood_type, barangay, contact_no, external_card_id, id_source, last_successful_donation " +
                 "FROM donors ORDER BY last_name, first_name, donor_id DESC";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -40,7 +40,7 @@ public class RecordsDAO {
     public List<DonorRecord> fetchDonorsPage(int page, int pageSize) {
         List<DonorRecord> records = new ArrayList<>();
         int offset = page * pageSize;
-        String sql = "SELECT donor_id, first_name, middle_name, last_name, sex, birth_date, blood_type, barangay, contact_no, last_successful_donation " +
+        String sql = "SELECT donor_id, first_name, middle_name, last_name, sex, birth_date, blood_type, barangay, contact_no, external_card_id, id_source, last_successful_donation " +
                 "FROM donors ORDER BY last_name, first_name, donor_id DESC LIMIT ? OFFSET ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -423,6 +423,8 @@ public class RecordsDAO {
                 rs.getString("blood_type"),
                 rs.getString("barangay"),
                 rs.getString("contact_no"),
+                rs.getString("external_card_id"),
+                rs.getString("id_source"),
                 toLocalDate(rs.getDate("last_successful_donation"))
         );
     }
@@ -564,6 +566,37 @@ public class RecordsDAO {
     // Alias for fetchIssuancesPage to match what RecordsViewController expects
     public List<IssuanceRecord> fetchIssuanceLogPage(int page, int pageSize) {
         return fetchIssuancesPage(page, pageSize);
+    }
+
+    public List<AuditLogRecord> searchAudits(String query) {
+        List<AuditLogRecord> records = new ArrayList<>();
+        String sql = "SELECT user_id, action_type, entity_type, entity_id, details, event_time " +
+                "FROM audit_log WHERE LOWER(action_type) LIKE ? OR LOWER(entity_type) LIKE ? " +
+                "OR LOWER(details) LIKE ? OR LOWER(entity_id) LIKE ? " +
+                "ORDER BY event_time DESC";
+        String pattern = "%" + query.toLowerCase() + "%";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, pattern);
+            ps.setString(2, pattern);
+            ps.setString(3, pattern);
+            ps.setString(4, pattern);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(new AuditLogRecord(
+                            toLocalDateTime(rs.getTimestamp("event_time")),
+                            String.valueOf(rs.getInt("user_id")),
+                            rs.getString("action_type"),
+                            rs.getString("entity_type"),
+                            rs.getString("entity_id"),
+                            rs.getString("details")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to search audit logs.", e);
+        }
+        return records;
     }
 
     // Update donor record

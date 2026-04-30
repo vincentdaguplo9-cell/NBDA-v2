@@ -5,167 +5,180 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.Circle?>
 
-<VBox spacing="0" styleClass="main-container" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.DonorRegistrationController">
+<VBox spacing="0" styleClass="main-container" stylesheets="@../css/style.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.DonorRegistrationController">
     
-    <HBox alignment="CENTER_LEFT" prefHeight="70.0" spacing="20.0" styleClass="top-nav">
-        <padding><Insets left="25.0" right="25.0" /></padding>
-        <Label styleClass="app-logo-text" text="NBDA | Donor Registration" />
+    <HBox alignment="CENTER_LEFT" prefHeight="80.0" spacing="20.0" styleClass="top-nav">
+        <padding><Insets left="40.0" right="40.0" /></padding>
+        <VBox alignment="CENTER_LEFT" spacing="2.0">
+            <Label styleClass="page-eyebrow" text="MEDICAL ARCHIVE SYSTEM" />
+            <Label styleClass="app-logo-text" text="NBDA | Donor Registration" />
+        </VBox>
         <Region HBox.hgrow="ALWAYS" />
+        <Button mnemonicParsing="false" onAction="#clearForm" styleClass="button-secondary" text="Reset Form" />
     </HBox>
 
-    <ScrollPane fitToWidth="true" styleClass="content-scroll-pane">
-        <VBox spacing="25.0">
-            <padding><Insets bottom="30.0" left="30.0" right="30.0" top="30.0" /></padding>
+    <ScrollPane fitToWidth="true" styleClass="content-scroll-pane" VBox.vgrow="ALWAYS">
+        <VBox spacing="35.0">
+            <padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
 
-            <HBox spacing="25.0">
-                <VBox spacing="20.0" styleClass="glass-card" HBox.hgrow="ALWAYS">
-                    <VBox spacing="5.0">
+            <HBox spacing="30.0">
+                <!-- Donor Profile Section -->
+                <VBox spacing="25.0" styleClass="glass-card" HBox.hgrow="ALWAYS">
+                    <VBox spacing="6.0">
                         <Label styleClass="card-title" text="Donor Profile" />
                         <Label styleClass="card-subtitle" text="Basic identity and contact information" />
                     </VBox>
-                    
                     <Separator />
-                    
-                    <GridPane hgap="15.0" vgap="15.0">
+
+                    <GridPane hgap="20.0" vgap="20.0">
                         <columnConstraints>
-                            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="50.0" />
-                            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="50.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
                         </columnConstraints>
                         
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                            <Label styleClass="field-label" text="External Card ID (PRC/DOH)" />
-                            <TextField fx:id="externalCardIdField" promptText="RC-12345 or DOH-67890" styleClass="modern-input" />
-                        </VBox>
-                        
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                            <Label styleClass="field-label" text="ID Source" />
-                            <ComboBox fx:id="externalSourceCombo" maxWidth="Infinity" promptText="Select" styleClass="modern-combo" />
-                        </VBox>
-                        
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
                             <Label styleClass="field-label" text="First Name *" />
                             <TextField fx:id="firstNameField" promptText="Juan" styleClass="modern-input" />
                         </VBox>
-                        
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
                             <Label styleClass="field-label" text="Last Name *" />
                             <TextField fx:id="lastNameField" promptText="Dela Cruz" styleClass="modern-input" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
-                            <Label styleClass="field-label" text="Date of Birth *" />
-                            <DatePicker fx:id="birthdatePicker" maxWidth="Infinity" styleClass="modern-datepicker" />
-                            <Label fx:id="ageLabel" styleClass="field-sublabel" text="" />
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label styleClass="field-label" text="Middle Name" />
+                            <TextField fx:id="middleNameField" promptText="Santos" styleClass="modern-input" />
+                        </VBox>
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label styleClass="field-label" text="Contact Number *" />
+                            <TextField fx:id="contactField" promptText="09123456789" styleClass="modern-input" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                            <Label styleClass="field-label" text="Birth Date *" />
+                            <HBox spacing="10.0" alignment="CENTER_LEFT">
+                                <DatePicker fx:id="birthdatePicker" maxWidth="Infinity" styleClass="modern-datepicker" HBox.hgrow="ALWAYS" />
+                                <Label fx:id="ageLabel" styleClass="status-pill" text="--" />
+                            </HBox>
+                        </VBox>
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
                             <Label styleClass="field-label" text="Sex *" />
                             <ComboBox fx:id="sexCombo" maxWidth="Infinity" promptText="Select" styleClass="modern-combo" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
                             <Label styleClass="field-label" text="Barangay *" />
                             <ComboBox fx:id="barangayCombo" maxWidth="Infinity" styleClass="modern-combo" />
                         </VBox>
-
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
                             <Label styleClass="field-label" text="Blood Type *" />
                             <ComboBox fx:id="bloodTypeCombo" maxWidth="Infinity" styleClass="modern-combo" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnSpan="2" GridPane.rowIndex="4">
-                            <Label styleClass="field-label" text="Contact Number *" />
-                            <TextField fx:id="contactField" promptText="09123456789" styleClass="modern-input" />
-                            <Label styleClass="field-hint" text="11 digits starting with 09" />
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="4">
+                            <Label styleClass="field-label" text="Donor Type" />
+                            <HBox styleClass="segmented-control">
+                                <ToggleButton fx:id="returningDonorToggle" maxWidth="Infinity" selected="true" text="RETURN" HBox.hgrow="ALWAYS">
+                                    <toggleGroup>
+                                        <ToggleGroup fx:id="donorTypeGroup" />
+                                    </toggleGroup>
+                                </ToggleButton>
+                                <ToggleButton fx:id="firstTimeDonorToggle" maxWidth="Infinity" onAction="#toggleFirstTimeDonor" text="NEW" toggleGroup="$donorTypeGroup" HBox.hgrow="ALWAYS" />
+                            </HBox>
                         </VBox>
-
-                        <VBox spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="5">
-                            <Label styleClass="field-label" text="Last Donation" />
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                            <Label styleClass="field-label" text="Last Successful Donation" />
                             <DatePicker fx:id="lastDonationPicker" maxWidth="Infinity" styleClass="modern-datepicker" />
                         </VBox>
 
-                        <VBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="5">
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="5">
                             <Label styleClass="field-label" text="Collection Date *" />
                             <DatePicker fx:id="collectionDatePicker" maxWidth="Infinity" styleClass="modern-datepicker" />
+                        </VBox>
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="5">
+                            <Label styleClass="field-label" text="Authentication ID Type *" />
+                            <ComboBox fx:id="authIdTypeCombo" maxWidth="Infinity" promptText="Select ID Type" styleClass="modern-combo" />
                         </VBox>
                     </GridPane>
                 </VBox>
 
-                <VBox spacing="20.0" styleClass="glass-card" HBox.hgrow="ALWAYS">
-                    <VBox spacing="5.0">
+                <!-- Medical Screening Section -->
+                <VBox spacing="25.0" styleClass="glass-card" HBox.hgrow="ALWAYS">
+                    <VBox spacing="6.0">
                         <Label styleClass="card-title" text="Medical Screening" />
                         <Label styleClass="card-subtitle" text="Vitals and eligibility measurements" />
                     </VBox>
-
                     <Separator />
 
-                    <VBox spacing="15.0">
-                        <HBox spacing="15.0">
-                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="field-label" text="Weight (kg) *" />
-                                <TextField fx:id="weightField" promptText="50" styleClass="modern-input" />
-                            </VBox>
-                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="field-label" text="BP (systolic/diastolic) *" />
-                                <HBox spacing="5.0">
-                                    <TextField fx:id="bpField" promptText="120/80" styleClass="modern-input" HBox.hgrow="ALWAYS" />
-                                    <Button fx:id="bpPresetBtn" styleClass="btn-mini" text="Preset" />
-                                </HBox>
-                            </VBox>
-                        </HBox>
+                    <GridPane hgap="20.0" vgap="20.0">
+                        <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" percentWidth="50.0" />
+                        </columnConstraints>
 
-                        <HBox spacing="15.0">
-                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="field-label" text="Hemoglobin (g/dL) *" />
-                                <TextField fx:id="hemoglobinField" promptText="13.5" styleClass="modern-input" />
-                            </VBox>
-                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="field-label" text="Pulse (bpm) *" />
-                                <TextField fx:id="pulseField" promptText="72" styleClass="modern-input" />
-                            </VBox>
-                        </HBox>
-
-                        <HBox spacing="15.0">
-                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="field-label" text="Temperature (C) *" />
-                                <TextField fx:id="temperatureField" promptText="36.8" styleClass="modern-input" />
-                            </VBox>
-                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="field-label" text="Blood Volume (mL)" />
-                                <HBox spacing="5.0">
-                                    <TextField fx:id="volumeField" promptText="450" styleClass="modern-input" HBox.hgrow="ALWAYS" />
-                                    <Button fx:id="volumePresetBtn" styleClass="btn-mini" text="450" />
-                                </HBox>
-                            </VBox>
-                        </HBox>
-
-                        <HBox spacing="15.0">
-                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="field-label" text="Sleep Hours" />
-                                <TextField fx:id="sleptHoursField" promptText="8" styleClass="modern-input" />
-                            </VBox>
-                            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                <Label styleClass="field-label" text="Guardian Consent (16-17)" />
-                                <CheckBox fx:id="guardianConsentCheckBox" text="Yes" />
-                            </VBox>
-                        </HBox>
-
-                        <VBox spacing="5.0">
-                            <Label styleClass="field-label" text="Wait Status" />
-                            <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="status-container-active">
-                                <Circle fill="#2ecc71" radius="5.0" />
-                                <Label fx:id="waitTimeValueLabel" styleClass="status-text-bold" text="Ready" />
-                                <Label fx:id="waitTimeHintLabel" styleClass="status-text-light" text="Eligible to donate" />
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <Label styleClass="field-label" text="Weight (kg) *" />
+                            <TextField fx:id="weightField" promptText="50" styleClass="modern-input" />
+                        </VBox>
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <Label styleClass="field-label" text="BP (systolic/diastolic) *" />
+                            <HBox spacing="8.0">
+                                <TextField fx:id="bpField" promptText="120/80" styleClass="modern-input" HBox.hgrow="ALWAYS" />
+                                <Button fx:id="bpPresetBtn" styleClass="btn-mini" text="120/80" />
                             </HBox>
                         </VBox>
+
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <Label styleClass="field-label" text="Pulse (bpm) *" />
+                            <TextField fx:id="pulseField" promptText="72" styleClass="modern-input" />
+                        </VBox>
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <Label styleClass="field-label" text="Temperature (C) *" />
+                            <TextField fx:id="temperatureField" promptText="36.8" styleClass="modern-input" />
+                        </VBox>
+
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                            <Label styleClass="field-label" text="Hemoglobin (g/dL) *" />
+                            <TextField fx:id="hemoglobinField" promptText="13.5" styleClass="modern-input" />
+                        </VBox>
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                            <Label styleClass="field-label" text="Blood Volume (mL)" />
+                            <HBox spacing="8.0">
+                                <TextField fx:id="volumeField" promptText="450" styleClass="modern-input" HBox.hgrow="ALWAYS" />
+                                <Button fx:id="volumePresetBtn" styleClass="btn-mini" text="450" />
+                            </HBox>
+                        </VBox>
+
+                        <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                            <Label styleClass="field-label" text="Sleep Hours" />
+                            <TextField fx:id="sleptHoursField" promptText="8" styleClass="modern-input" />
+                        </VBox>
+                        <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                            <Label styleClass="field-label" text="Guardian Consent (16-17)" />
+                            <CheckBox fx:id="guardianConsentCheckBox" text="Consent Provided" styleClass="modern-checkbox" />
+                        </VBox>
+                    </GridPane>
+
+                    <Region VBox.vgrow="ALWAYS" />
+
+                    <VBox spacing="12.0">
+                        <Label styleClass="field-label" text="Current Eligibility Status" />
+                        <HBox alignment="CENTER_LEFT" spacing="15.0" styleClass="status-container-active">
+                            <Circle fill="#10b981" radius="6.0" />
+                            <VBox spacing="2.0">
+                                <Label fx:id="waitTimeValueLabel" styleClass="status-text-bold" text="Ready" />
+                                <Label fx:id="waitTimeHintLabel" styleClass="status-text-light" text="Eligible for donation procedure" />
+                            </VBox>
+                        </HBox>
                     </VBox>
                 </VBox>
             </HBox>
 
-            <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="glass-card-footer">
-                <VBox spacing="10.0" HBox.hgrow="ALWAYS">
-                    <Label styleClass="card-title-small" text="Readiness Checklist" />
-                    <FlowPane hgap="20.0" vgap="10.0">
+            <!-- Footer Section -->
+            <HBox alignment="CENTER_LEFT" spacing="30.0" styleClass="glass-card-footer">
+                <VBox spacing="15.0" HBox.hgrow="ALWAYS">
+                    <Label styleClass="card-title-small" text="Safety Readiness Checklist" />
+                    <FlowPane hgap="30.0" vgap="15.0">
                         <CheckBox fx:id="hadMealCheckBox" text="Has eaten today" />
                         <CheckBox fx:id="alcoholCheckBox" text="No alcohol (24h)" />
                         <CheckBox fx:id="feverCheckBox" text="No fever/cold" />
@@ -174,10 +187,14 @@
                     </FlowPane>
                 </VBox>
                 
-                <VBox alignment="CENTER_RIGHT" spacing="10.0">
-                    <Label fx:id="resultLabel" styleClass="feedback-text" text="Awaiting validation..." />
-                    <Label fx:id="eligibilityStatusLabel" styleClass="status-pill" text="Verify" />
-                    <Button fx:id="saveButton" onAction="#saveDonor" prefHeight="45.0" prefWidth="200.0" styleClass="button-primary" text="Register &amp; Verify" />
+                <Separator orientation="VERTICAL" />
+
+                <VBox alignment="CENTER_RIGHT" spacing="12.0" minWidth="300.0">
+                    <Label fx:id="resultLabel" styleClass="feedback-text" text="Awaiting system validation..." wrapText="true" alignment="CENTER_RIGHT" />
+                    <HBox alignment="CENTER_RIGHT" spacing="20.0">
+                        <Label fx:id="eligibilityStatusLabel" styleClass="status-pill" text="Verify" />
+                        <Button fx:id="saveButton" onAction="#saveDonor" prefHeight="55.0" prefWidth="240.0" styleClass="button-primary" text="Register &amp; Complete" />
+                    </HBox>
                 </VBox>
             </HBox>
         </VBox>

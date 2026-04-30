@@ -5,50 +5,54 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.Circle?>
 
-<BorderPane fx:id="root" styleClass="app-shell" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AppShellController">
+<HBox prefHeight="768.0" prefWidth="1280.0" styleClass="main-container" stylesheets="@../css/style.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AppShellController">
     
-    <left>
-        <VBox prefWidth="260.0" styleClass="sidebar">
-            <padding><Insets bottom="30.0" left="20.0" right="20.0" top="40.0" /></padding>
-            
-            <VBox spacing="5.0">
-                <HBox alignment="CENTER_LEFT" spacing="10.0">
-                    <Circle fill="#e74c3c" radius="6.0" />
-                    <Label styleClass="sidebar-brand-large" text="NBDA" />
-                </HBox>
-                <Label styleClass="sidebar-brand-sub" text="Blood Archive System" />
+    <!-- Modern Sidebar -->
+    <VBox prefWidth="280.0" spacing="10.0" styleClass="sidebar">
+        <padding><Insets bottom="30.0" left="25.0" right="25.0" top="40.0" /></padding>
+        
+        <HBox alignment="CENTER_LEFT" spacing="12.0">
+            <StackPane fx:id="logoIcon" />
+            <VBox spacing="2.0">
+                <Label styleClass="sidebar-brand-large" text="NBDA" />
+                <Label styleClass="sidebar-brand-sub" text="MEDICAL ARCHIVE SYSTEM" />
             </VBox>
-
-            <Region prefHeight="40.0" />
-
-            <VBox spacing="10.0" VBox.vgrow="ALWAYS">
-                <Label styleClass="sidebar-section-header" text="MAIN MENU" />
-                
-                <Button fx:id="dashboardButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showDashboard" styleClass="nav-button, nav-active" text="Dashboard" />
-                
-                <Label styleClass="sidebar-section-header" text="DONOR SERVICES">
-                    <VBox.margin><Insets top="15.0" /></VBox.margin>
-                </Label>
-                <Button fx:id="registrationButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showRegistration" styleClass="nav-button" text="New Registration" />
-                <Button fx:id="recordDonationButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showRecordDonation" styleClass="nav-button" text="Record Return" />
-                
-                <Label styleClass="sidebar-section-header" text="INVENTORY">
-                    <VBox.margin><Insets top="15.0" /></VBox.margin>
-                </Label>
-                <Button fx:id="inventoryButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showInventory" styleClass="nav-button" text="Blood Archive" />
-                <Button fx:id="recordsButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#showRecords" styleClass="nav-button" text="System Logs" />
-            </VBox>
-
-            <VBox spacing="15.0" styleClass="sidebar-footer">
-                <Separator opacity="0.1" />
-                <Button fx:id="logoutButton" alignment="BASELINE_LEFT" maxWidth="Infinity" onAction="#handleLogout" styleClass="nav-button-logout" text="Logout System" />
-            </VBox>
+        </HBox>
+        
+        <Region prefHeight="30.0" />
+        
+        <Label styleClass="sidebar-section-header" text="MAIN MENU">
+            <VBox.margin><Insets bottom="5.0" left="10.0" /></VBox.margin>
+        </Label>
+        
+        <Button fx:id="dashboardButton" alignment="BASELINE_LEFT" maxWidth="Infinity" mnemonicParsing="false" onAction="#showDashboard" styleClass="nav-button, nav-active" text="Dashboard" />
+        <Button fx:id="registrationButton" alignment="BASELINE_LEFT" maxWidth="Infinity" mnemonicParsing="false" onAction="#showRegistration" styleClass="nav-button" text="Donor Registration" />
+        <Button fx:id="recordDonationButton" alignment="BASELINE_LEFT" maxWidth="Infinity" mnemonicParsing="false" onAction="#showRecordDonation" styleClass="nav-button" text="Record Return" />
+        <Button fx:id="inventoryButton" alignment="BASELINE_LEFT" maxWidth="Infinity" mnemonicParsing="false" onAction="#showInventory" styleClass="nav-button" text="Blood Inventory" />
+        <Button fx:id="recordsButton" alignment="BASELINE_LEFT" maxWidth="Infinity" mnemonicParsing="false" onAction="#showRecords" styleClass="nav-button" text="System Records" />
+        
+        <Region prefHeight="20.0" />
+        
+        <Label styleClass="sidebar-section-header" text="ADMINISTRATION">
+            <VBox.margin><Insets bottom="5.0" left="10.0" /></VBox.margin>
+        </Label>
+        
+        <Button fx:id="userManagementButton" alignment="BASELINE_LEFT" maxWidth="Infinity" mnemonicParsing="false" onAction="#showUserManagement" styleClass="nav-button" text="User Management" />
+        
+        <Region VBox.vgrow="ALWAYS" />
+        
+        <VBox spacing="15.0">
+            <Separator opacity="0.1" />
+            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                <padding><Insets left="10.0" /></padding>
+                <VBox spacing="2.0">
+                    <Label fx:id="currentUserLabel" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;" text="Medical Staff" />
+                </VBox>
+            </HBox>
+            <Button fx:id="logoutButton" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleLogout" styleClass="nav-button-logout" text="Sign Out System" />
         </VBox>
-    </left>
+    </VBox>
 
-    <center>
-        <StackPane fx:id="contentArea" styleClass="main-content-background">
-            </StackPane>
-    </center>
-
-</BorderPane>
+    <!-- Main Content Area -->
+    <StackPane fx:id="contentArea" style="-fx-background-color: #f8fafc;" HBox.hgrow="ALWAYS" />
+</HBox>

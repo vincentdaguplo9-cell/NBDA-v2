@@ -6,12 +6,12 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.Circle?>
 
-<VBox spacing="0" styleClass="main-container" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.DashboardController">
+<VBox spacing="0" styleClass="main-container" stylesheets="@../css/style.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.DashboardController">
     
-    <HBox alignment="CENTER_LEFT" prefHeight="70.0" spacing="20.0" styleClass="top-nav">
-        <padding><Insets left="25.0" right="25.0" /></padding>
-        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
-            <Label styleClass="page-eyebrow" text="SYSTEM OVERVIEW" />
+    <HBox alignment="CENTER_LEFT" prefHeight="80.0" spacing="20.0" styleClass="top-nav">
+        <padding><Insets left="40.0" right="40.0" /></padding>
+        <VBox alignment="CENTER_LEFT" spacing="2.0" HBox.hgrow="ALWAYS">
+            <Label styleClass="page-eyebrow" text="ANALYTICS DASHBOARD" />
             <Label styleClass="app-logo-text" text="Naval Blood Donation Archive" />
         </VBox>
         <Region HBox.hgrow="ALWAYS" />
@@ -21,60 +21,61 @@
         </VBox>
     </HBox>
 
-    <ScrollPane fitToWidth="true" styleClass="transparent-scroll" VBox.vgrow="ALWAYS">
-        <VBox spacing="25.0">
-            <padding><Insets bottom="25.0" left="25.0" right="25.0" top="25.0" /></padding>
+    <ScrollPane fitToWidth="true" styleClass="content-scroll-pane" VBox.vgrow="ALWAYS">
+        <VBox spacing="35.0">
+            <padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
 
-            <HBox spacing="15.0">
+            <HBox spacing="20.0">
                 <VBox styleClass="kpi-card-modern, kpi-blue" HBox.hgrow="ALWAYS">
-                    <Label styleClass="kpi-label" text="Total Bags" />
+                    <Label styleClass="kpi-label" text="TOTAL INVENTORY" />
                     <Label fx:id="totalBagsLabel" styleClass="kpi-value" text="0" />
-                    <ProgressBar progress="0.7" styleClass="kpi-progress" />
+                    <ProgressBar maxWidth="Infinity" progress="0.7" styleClass="kpi-progress" />
                 </VBox>
 
                 <VBox styleClass="kpi-card-modern, kpi-green" HBox.hgrow="ALWAYS">
-                    <Label styleClass="kpi-label" text="Available" />
+                    <Label styleClass="kpi-label" text="AVAILABLE STOCK" />
                     <Label fx:id="availableBagsLabel" styleClass="kpi-value" text="0" />
                     <Label styleClass="kpi-subtext" text="Ready for issuance" />
                 </VBox>
 
                 <VBox styleClass="kpi-card-modern, kpi-orange" HBox.hgrow="ALWAYS">
-                    <Label styleClass="kpi-label" text="Pending TTI" />
+                    <Label styleClass="kpi-label" text="PENDING SCREENING" />
                     <Label fx:id="pendingTtiLabel" styleClass="kpi-value" text="0" />
-                    <Label styleClass="kpi-subtext" text="Awaiting screening" />
+                    <Label styleClass="kpi-subtext" text="Awaiting TTI results" />
                 </VBox>
 
                 <VBox styleClass="kpi-card-modern, kpi-teal" HBox.hgrow="ALWAYS">
-                    <Label styleClass="kpi-label" text="Total Donors" />
+                    <Label styleClass="kpi-label" text="TOTAL DONORS" />
                     <Label fx:id="totalDonorsLabel" styleClass="kpi-value" text="0" />
-                    <Label styleClass="kpi-subtext" text="Active donors" />
+                    <Label styleClass="kpi-subtext" text="Registered in system" />
                 </VBox>
             </HBox>
 
-            <HBox spacing="20.0" prefHeight="350.0">
+            <HBox spacing="30.0" prefHeight="400.0">
                 <VBox styleClass="glass-card" HBox.hgrow="ALWAYS">
-                    <Label styleClass="card-title-modern" text="Blood Stock by Type" />
+                    <Label styleClass="card-title" text="Blood Stock by Type" />
                     <BarChart fx:id="stockChart" animated="false" styleClass="modern-chart" VBox.vgrow="ALWAYS">
                         <xAxis><CategoryAxis side="BOTTOM" /></xAxis>
                         <yAxis><NumberAxis side="LEFT" /></yAxis>
                     </BarChart>
                 </VBox>
 
-                <VBox styleClass="glass-card" prefWidth="350.0">
-                    <Label styleClass="card-title-modern" text="Inventory Distribution" />
+                <VBox styleClass="glass-card" prefWidth="400.0">
+                    <Label styleClass="card-title" text="Inventory Distribution" />
                     <PieChart fx:id="distributionChart" legendSide="BOTTOM" styleClass="modern-chart" VBox.vgrow="ALWAYS" />
                 </VBox>
             </HBox>
 
-            <VBox styleClass="glass-card" VBox.vgrow="ALWAYS">
+            <VBox spacing="20.0" styleClass="glass-card" VBox.vgrow="ALWAYS">
                 <HBox alignment="CENTER_LEFT" spacing="10.0">
-                    <Label styleClass="card-title-modern" text="Recent System Activity" />
+                    <Label styleClass="card-title" text="Recent System Activity" />
                     <Region HBox.hgrow="ALWAYS" />
-                    <Label fx:id="activityCountLabel" styleClass="status-pill-info" text="0 entries today" />
+                    <Label fx:id="activityCountLabel" styleClass="status-pill" text="0 entries today" />
                 </HBox>
-                <VBox fx:id="activityList" spacing="10.0" styleClass="activity-feed">
-                    <padding><Insets top="15.0" /></padding>
-                    </VBox>
+                <Separator />
+                <VBox fx:id="activityList" spacing="12.0" styleClass="activity-feed">
+                    <padding><Insets bottom="10.0" top="10.0" /></padding>
+                </VBox>
             </VBox>
         </VBox>
     </ScrollPane>

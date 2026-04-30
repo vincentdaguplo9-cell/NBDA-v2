@@ -104,6 +104,9 @@ public class IconFactory {
             case "USER":
                 node = buildUserIcon(color);
                 break;
+            case "ANCHOR_DROP":
+                node = buildAnchorDropIcon(color);
+                break;
             default:
                 node = buildFallbackLabel(fallbackText, color);
                 break;
@@ -111,6 +114,23 @@ public class IconFactory {
         node.setScaleX(iconSize / BASE_ICON_SIZE);
         node.setScaleY(iconSize / BASE_ICON_SIZE);
         return node;
+    }
+
+    private static Node buildAnchorDropIcon(Color color) {
+        Group group = new Group();
+
+        SVGPath shield = new SVGPath();
+        shield.setContent("M9 2 L14 4 L14 9 C14 13 9 16 9 16 C9 16 4 13 4 9 L4 4 Z");
+        shield.setFill(Color.TRANSPARENT);
+        shield.setStroke(color);
+        shield.setStrokeWidth(1.8);
+
+        SVGPath drop = new SVGPath();
+        drop.setContent("M9 6 C7.5 8 6 9.5 6 11 A3 3 0 0 0 12 11 C12 9.5 10.5 8 9 6 Z");
+        drop.setFill(color);
+
+        group.getChildren().addAll(shield, drop);
+        return group;
     }
 
     private static Node buildTintIcon(Color color) {

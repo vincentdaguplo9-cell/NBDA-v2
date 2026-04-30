@@ -15,7 +15,7 @@ import java.util.List;
 
 public class DonorHistoryViewController {
     private final RecordsDAO recordsDAO = new RecordsDAO();
-    private int donorId;
+    private String donorId;
     private String donorName;
 
     @FXML private Label donorNameLabel;
@@ -65,7 +65,7 @@ public class DonorHistoryViewController {
         configureTable(issuanceTable);
     }
 
-    public void loadDonorHistory(int donorId, String donorName) {
+    public void loadDonorHistory(String donorId, String donorName) {
         this.donorId = donorId;
         this.donorName = donorName;
         if (donorNameLabel != null) {
@@ -76,7 +76,7 @@ public class DonorHistoryViewController {
 
     @FXML
     private void refreshHistory() {
-        if (donorId <= 0) {
+        if (donorId == null || donorId.isEmpty()) {
             return;
         }
         try {

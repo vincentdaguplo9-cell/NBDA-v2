@@ -20,6 +20,8 @@ public class ScreeningInput {
     private final boolean hadTattooOrPiercingLast12Months;
     private final boolean hadRecentOperation;
     private final boolean currentlyPregnant;
+    private final String authIdType;
+    private final boolean firstTimeDonor;
 
     public ScreeningInput(LocalDate collectionDate,
                           int collectionVolumeMl,
@@ -36,7 +38,9 @@ public class ScreeningInput {
                           boolean hasFeverCoughColds,
                           boolean hadTattooOrPiercingLast12Months,
                           boolean hadRecentOperation,
-                          boolean currentlyPregnant) {
+                          boolean currentlyPregnant,
+                          String authIdType,
+                          boolean firstTimeDonor) {
         this.collectionDate = collectionDate;
         this.collectionVolumeMl = collectionVolumeMl;
         this.weightKg = weightKg;
@@ -53,6 +57,8 @@ public class ScreeningInput {
         this.hadTattooOrPiercingLast12Months = hadTattooOrPiercingLast12Months;
         this.hadRecentOperation = hadRecentOperation;
         this.currentlyPregnant = currentlyPregnant;
+        this.authIdType = authIdType;
+        this.firstTimeDonor = firstTimeDonor;
     }
 
     public LocalDate getCollectionDate() {
@@ -117,6 +123,14 @@ public class ScreeningInput {
 
     public boolean isCurrentlyPregnant() {
         return currentlyPregnant;
+    }
+
+    public String getAuthIdType() {
+        return authIdType;
+    }
+
+    public boolean isFirstTimeDonor() {
+        return firstTimeDonor;
     }
 
     public String getBloodPressureDisplay() {

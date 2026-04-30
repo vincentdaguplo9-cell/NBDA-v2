@@ -1,5 +1,7 @@
 package model;
 
+import java.time.LocalDateTime;
+
 // Captures TTI results before a quarantined unit is released or discarded.
 public class TtiScreeningInput {
     private final String hiv;
@@ -9,8 +11,12 @@ public class TtiScreeningInput {
     private final String malaria;
     private final String testKit;
     private final String remarks;
+    private final LocalDateTime testedAt;
+    private final int testedBy;
 
-    public TtiScreeningInput(String hiv, String hbv, String hcv, String syphilis, String malaria, String testKit, String remarks) {
+    // Full constructor with all fields
+    public TtiScreeningInput(String hiv, String hbv, String hcv, String syphilis, String malaria, 
+                              String testKit, String remarks, LocalDateTime testedAt, int testedBy) {
         this.hiv = hiv;
         this.hbv = hbv;
         this.hcv = hcv;
@@ -18,6 +24,14 @@ public class TtiScreeningInput {
         this.malaria = malaria;
         this.testKit = testKit;
         this.remarks = remarks;
+        this.testedAt = testedAt;
+        this.testedBy = testedBy;
+    }
+
+    // Secondary constructor without testedAt and testedBy (for dialog use)
+    public TtiScreeningInput(String hiv, String hbv, String hcv, String syphilis, String malaria, 
+                              String testKit, String remarks) {
+        this(hiv, hbv, hcv, syphilis, malaria, testKit, remarks, null, 0);
     }
 
     public String getHiv() {
@@ -46,6 +60,14 @@ public class TtiScreeningInput {
 
     public String getRemarks() {
         return remarks;
+    }
+
+    public LocalDateTime getTestedAt() {
+        return testedAt;
+    }
+
+    public int getTestedBy() {
+        return testedBy;
     }
 
     public boolean allNonReactive() {

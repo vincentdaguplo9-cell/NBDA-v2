@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS donors (
     blood_type ENUM('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-') NOT NULL,
     barangay VARCHAR(100) NOT NULL,
     contact_no VARCHAR(20) NOT NULL,
+    external_card_id VARCHAR(50) NULL,
+    id_source VARCHAR(20) NULL,
     last_successful_donation DATE NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

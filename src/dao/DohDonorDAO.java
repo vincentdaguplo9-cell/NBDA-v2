@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,10 +31,6 @@ public class DohDonorDAO {
     private static final int MAX_PULSE_BPM = 100;
 
     public RegistrationResult registerDonation(DohDonor donor, ScreeningInput screening, int screenedBy) {
-        if (donor == null || screening == null || screening.getCollectionDate() == null) {
-            return RegistrationResult.error("Missing donor details or screening data.");
-        }
-
         try (Connection conn = DBConnection.getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -43,7 +40,7 @@ public class DohDonorDAO {
                         donor.getLastSuccessfulDonation()
                 );
 
-                int donorId;
+                String donorId;
                 if (existingDonor == null) {
                     donorId = insertDonor(conn, donor, previousDonation);
                 } else {
@@ -52,7 +49,7 @@ public class DohDonorDAO {
                 }
 
                 ScreeningDecision decision = evaluateEligibility(donor, screening, previousDonation);
-                int screeningId = insertScreening(conn, donorId, screening, screenedBy, decision);
+                int screeningId = insertScreening(conn, donorId, screening, screenedBy, decision, screening.getAuthIdType());
 
                 if (!decision.eligible) {
                     insertAudit(conn, screenedBy, "SCREENING_DEFERRED", "donor_screening",
@@ -87,10 +84,13 @@ public class DohDonorDAO {
         List<String> reasons = new ArrayList<>();
         LocalDate nextEligibleDate = null;
 
-        String externalId = donor.getExternalCardId();
-        String externalSource = donor.getExternalSource();
-        if (externalId == null || externalId.isBlank() || "NONE".equals(externalSource)) {
-            reasons.add("Valid PRC/DOH ID required - please register with external card ID.");
+        // Check if ID type was selected for authentication (transient auth model)
+        // First-time donors are exempt from strict ID requirement (they may be in process of getting ID)
+        String authIdType = screening.getAuthIdType();
+        if (!screening.isFirstTimeDonor()) {
+            if (authIdType == null || authIdType.isBlank() || "NONE".equals(authIdType)) {
+                reasons.add("Valid ID must be presented and type selected for authentication.");
+            }
         }
 
         int age = Period.between(donor.getBirthdate(), screening.getCollectionDate()).getYears();
@@ -102,8 +102,12 @@ public class DohDonorDAO {
             nextEligibleDate = screening.getCollectionDate();
         } else if (age > 65) {
             reasons.add("Donor must not be older than 65 years old.");
-        } else if (age > 60 && previousDonation == null) {
+        } else if (age > 60 && previousDonation == null && !screening.isFirstTimeDonor()) {
             reasons.add("Donors aged 61 to 65 require prior successful donation history as regular donors.");
+        } else if (screening.isFirstTimeDonor() && age >= 16 && age <= 65) {
+            // First-time donor - accepted with note (not deferred)
+            // They may need additional counseling but are not automatically deferred
+            // This is informational only - do NOT add to reasons (which would cause deferral)
         }
 
         if (screening.getWeightKg() < MIN_WEIGHT_KG) {
@@ -124,81 +128,96 @@ public class DohDonorDAO {
         }
 
         if (screening.getPulseBpm() < MIN_PULSE_BPM || screening.getPulseBpm() > MAX_PULSE_BPM) {
-            reasons.add("Pulse rate must be within the acceptable donor range.");
-        }
-
-        if (previousDonation != null) {
-            LocalDate nextAllowedDate = previousDonation.plusDays(90);
-            if (nextAllowedDate.isAfter(screening.getCollectionDate())) {
-                reasons.add("Whole blood donation requires a 3-month interval. Earliest next donation date is " + nextAllowedDate + ".");
-                nextEligibleDate = laterDate(nextEligibleDate, nextAllowedDate);
-            }
-        }
-
-        if (!screening.isHadMeal()) {
-            reasons.add("Donor must have eaten before donation.");
-        }
-
-        if (screening.getSleptHours() < 8.0) {
-            reasons.add("Donor should have at least 8 hours of sleep and rest before donation.");
+            reasons.add("Pulse rate must be between 50 and 100 bpm.");
         }
 
         if (screening.isAlcoholInLast24h()) {
             reasons.add("Alcohol intake within the last 24 hours requires temporary deferral.");
+            if (nextEligibleDate == null || nextEligibleDate.isBefore(screening.getCollectionDate().plusDays(1))) {
+                nextEligibleDate = screening.getCollectionDate().plusDays(1);
+            }
         }
 
         if (screening.isHasFeverCoughColds()) {
             reasons.add("Fever, cough, or colds require temporary deferral.");
+            if (nextEligibleDate == null || nextEligibleDate.isBefore(screening.getCollectionDate().plusDays(7))) {
+                nextEligibleDate = screening.getCollectionDate().plusDays(7);
+            }
         }
 
         if (screening.isHadTattooOrPiercingLast12Months()) {
             reasons.add("Tattoo, piercing, acupuncture, or similar needle procedure within the last 12 months requires deferral.");
-            nextEligibleDate = laterDate(nextEligibleDate, screening.getCollectionDate().plusYears(1));
+            if (nextEligibleDate == null || nextEligibleDate.isBefore(screening.getCollectionDate().plusMonths(12))) {
+                nextEligibleDate = screening.getCollectionDate().plusMonths(12);
+            }
         }
 
         if (screening.isHadRecentOperation()) {
             reasons.add("Recent medical operation requires physician clearance before donation.");
+            if (nextEligibleDate == null || nextEligibleDate.isBefore(screening.getCollectionDate().plusMonths(6))) {
+                nextEligibleDate = screening.getCollectionDate().plusMonths(6);
+            }
         }
 
         if ("FEMALE".equalsIgnoreCase(donor.getSex()) && screening.isCurrentlyPregnant()) {
-            reasons.add("Pregnancy requires temporary deferral.");
-        }
-
-        if (reasons.isEmpty()) {
-            return ScreeningDecision.eligible(
-                    "Passed age, weight, donation interval, and readiness screening.",
-                    screening.getCollectionDate().plusDays(90)
-            );
-        }
-
-        StringBuilder message = new StringBuilder("Donor deferred: ");
-        for (int i = 0; i < reasons.size(); i++) {
-            if (i > 0) {
-                message.append(' ');
+            reasons.add("Pregnant donors are deferred until 6 weeks after delivery.");
+            if (nextEligibleDate == null) {
+                nextEligibleDate = screening.getCollectionDate().plusMonths(6);
             }
-            message.append(reasons.get(i));
         }
-        if (nextEligibleDate != null) {
-            message.append(" Suggested re-screening date: ").append(nextEligibleDate).append('.');
+
+        boolean eligible = reasons.isEmpty();
+        String message = eligible ? "Eligible for donation." : String.join(" ", reasons);
+        if (nextEligibleDate != null && !eligible) {
+            message += " Suggested re-screening date: " + nextEligibleDate + ".";
         }
-        return ScreeningDecision.deferred(message.toString(), nextEligibleDate);
+
+        // Truncate message to fit VARCHAR(1000)
+        if (message.length() > 1000) {
+            message = message.substring(0, 997) + "...";
+        }
+
+        return new ScreeningDecision(eligible, message, nextEligibleDate);
+    }
+
+    private static class ExistingDonor {
+        final String id;
+        final LocalDate lastSuccessfulDonation;
+
+        ExistingDonor(String id, LocalDate lastSuccessfulDonation) {
+            this.id = id;
+            this.lastSuccessfulDonation = lastSuccessfulDonation;
+        }
+    }
+
+    private static class ScreeningDecision {
+        final boolean eligible;
+        final String message;
+        final LocalDate nextEligibleDate;
+
+        ScreeningDecision(boolean eligible, String message, LocalDate nextEligibleDate) {
+            this.eligible = eligible;
+            this.message = message;
+            this.nextEligibleDate = nextEligibleDate;
+        }
     }
 
     private ExistingDonor findExistingDonor(Connection conn, DohDonor donor) throws SQLException {
         String sql = "SELECT donor_id, last_successful_donation FROM donors " +
-                "WHERE LOWER(first_name) = LOWER(?) AND LOWER(last_name) = LOWER(?) " +
+                "WHERE LOWER(first_name) = LOWER(?) AND LOWER(middle_name) = LOWER(?) AND LOWER(last_name) = LOWER(?) " +
                 "AND birth_date = ? AND contact_no = ? " +
                 "ORDER BY donor_id DESC LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, donor.getFirstName());
-            ps.setString(2, donor.getLastName());
-            ps.setDate(3, Date.valueOf(donor.getBirthdate()));
-            ps.setString(4, donor.getContact());
+            ps.setString(2, donor.getMiddleName() != null ? donor.getMiddleName() : "");
+            ps.setString(3, donor.getLastName());
+            ps.setDate(4, Date.valueOf(donor.getBirthdate()));
+            ps.setString(5, donor.getContact());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     Date lastDonation = rs.getDate("last_successful_donation");
                     return new ExistingDonor(
-                            rs.getInt("donor_id"),
+                            rs.getString("donor_id"),
                             lastDonation == null ? null : lastDonation.toLocalDate()
                     );
                 }
@@ -207,23 +226,208 @@ public class DohDonorDAO {
         return null;
     }
 
+    private String insertDonor(Connection conn, DohDonor donor, LocalDate lastSuccessfulDonation) throws SQLException {
+        String donorId = generateDonorId(conn);
+        String sql = "INSERT INTO donors (donor_id, first_name, middle_name, last_name, sex, birth_date, blood_type, barangay, contact_no, external_card_id, id_source, last_successful_donation) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, donorId);
+            ps.setString(2, donor.getFirstName());
+            ps.setString(3, donor.getMiddleName());
+            ps.setString(4, donor.getLastName());
+            ps.setString(5, donor.getSex());
+            ps.setDate(6, Date.valueOf(donor.getBirthdate()));
+            ps.setString(7, donor.getBloodType());
+            ps.setString(8, donor.getBarangay());
+            ps.setString(9, donor.getContact());
+            ps.setString(10, donor.getExternalCardId());
+            ps.setString(11, donor.getExternalSource());
+            if (lastSuccessfulDonation == null) {
+                ps.setNull(12, java.sql.Types.DATE);
+            } else {
+                ps.setDate(12, Date.valueOf(lastSuccessfulDonation));
+            }
+            ps.executeUpdate();
+            return donorId;
+        }
+    }
+
+    private String generateDonorId(Connection conn) throws SQLException {
+        String yearPrefix = String.valueOf(Year.now().getValue());
+        String idPrefix = "NBDA-" + yearPrefix + "-";
+        
+        String sql = "INSERT INTO donor_id_counter (id_prefix, last_number) VALUES (?, 1) " +
+                "ON DUPLICATE KEY UPDATE last_number = last_number + 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, idPrefix);
+            ps.executeUpdate();
+        }
+        
+        String selectSql = "SELECT last_number FROM donor_id_counter WHERE id_prefix = ?";
+        try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+            ps.setString(1, idPrefix);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int nextNum = rs.getInt("last_number");
+                    return idPrefix + String.format("%05d", nextNum);
+                }
+            }
+        }
+        throw new SQLException("Unable to generate donor ID.");
+    }
+
+    private void updateDonor(Connection conn, String donorId, DohDonor donor, LocalDate lastSuccessfulDonation) throws SQLException {
+        String sql = "UPDATE donors SET first_name = ?, middle_name = ?, last_name = ?, sex = ?, birth_date = ?, blood_type = ?, barangay = ?, " +
+                "contact_no = ?, external_card_id = ?, id_source = ?, last_successful_donation = ? WHERE donor_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, donor.getFirstName());
+            ps.setString(2, donor.getMiddleName());
+            ps.setString(3, donor.getLastName());
+            ps.setString(4, donor.getSex());
+            ps.setDate(5, Date.valueOf(donor.getBirthdate()));
+            ps.setString(6, donor.getBloodType());
+            ps.setString(7, donor.getBarangay());
+            ps.setString(8, donor.getContact());
+            ps.setString(9, donor.getExternalCardId());
+            ps.setString(10, donor.getExternalSource());
+            if (lastSuccessfulDonation == null) {
+                ps.setNull(11, java.sql.Types.DATE);
+            } else {
+                ps.setDate(11, Date.valueOf(lastSuccessfulDonation));
+            }
+            ps.setString(12, donorId);
+            ps.executeUpdate();
+        }
+    }
+
+    private int insertScreening(Connection conn, String donorId, ScreeningInput screening, int screenedBy, ScreeningDecision decision, String authIdType) throws SQLException {
+        String sql = "INSERT INTO donor_screening (" +
+                "donor_id, auth_id_type, screened_by, screening_date, intended_collection_date, weight_kg, blood_pressure, systolic_bp, diastolic_bp, " +
+                "pulse_bpm, temperature_c, hemoglobin_g_dl, slept_hours, guardian_consent_provided, had_meal, alcohol_in_last_24h, " +
+                "has_fever_cough_colds, had_tattoo_or_piercing_last_12m, had_recent_operation, currently_pregnant, " +
+                "screening_status, decision_reason, next_eligible_date) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, donorId);
+            // Handle null auth_id_type - default to 'OTHER' if not provided
+            ps.setString(2, (authIdType == null || authIdType.isBlank()) ? "OTHER" : authIdType);
+            ps.setInt(3, screenedBy);
+            ps.setDate(4, Date.valueOf(LocalDate.now()));
+            ps.setDate(5, Date.valueOf(screening.getCollectionDate()));
+            ps.setDouble(6, screening.getWeightKg());
+            ps.setString(7, screening.getBloodPressureDisplay());
+            ps.setInt(8, screening.getSystolicBp());
+            ps.setInt(9, screening.getDiastolicBp());
+            ps.setInt(10, screening.getPulseBpm());
+            ps.setDouble(11, screening.getTemperatureC());
+            ps.setDouble(12, screening.getHemoglobinGdl());
+            ps.setDouble(13, screening.getSleptHours());
+            ps.setBoolean(14, screening.isGuardianConsentProvided());
+            ps.setBoolean(15, screening.isHadMeal());
+            ps.setBoolean(16, screening.isAlcoholInLast24h());
+            ps.setBoolean(17, screening.isHasFeverCoughColds());
+            ps.setBoolean(18, screening.isHadTattooOrPiercingLast12Months());
+            ps.setBoolean(19, screening.isHadRecentOperation());
+            ps.setBoolean(20, screening.isCurrentlyPregnant());
+            ps.setString(21, decision.eligible ? "ELIGIBLE" : "TEMPORARILY_DEFERRED");
+            ps.setString(22, decision.message);
+            ps.setDate(23, decision.nextEligibleDate == null ? null : Date.valueOf(decision.nextEligibleDate));
+            ps.executeUpdate();
+
+            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getInt(1);
+                }
+            }
+        }
+        throw new SQLException("Failed to insert screening record.");
+    }
+
+    private String nextBagId(Connection conn, LocalDate collectionDate) throws SQLException {
+        String datePart = collectionDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String prefix = "BAG-" + datePart + "-";
+        
+        String sql = "INSERT INTO bag_id_counter (id_prefix, last_number) VALUES (?, 1) " +
+                "ON DUPLICATE KEY UPDATE last_number = last_number + 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, prefix);
+            ps.executeUpdate();
+        }
+        
+        String selectSql = "SELECT last_number FROM bag_id_counter WHERE id_prefix = ?";
+        try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+            ps.setString(1, prefix);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int nextNum = rs.getInt("last_number");
+                    return prefix + String.format("%03d", nextNum);
+                }
+            }
+        }
+        throw new SQLException("Unable to generate bag ID.");
+    }
+
+    private void insertBag(Connection conn, String bagId, String donorId, int screeningId, String bloodType, LocalDate collectionDate, int volumeMl) throws SQLException {
+        LocalDate expiryDate = collectionDate.plusDays(35);
+        String sql = "INSERT INTO blood_inventory (bag_id, donor_id, screening_id, blood_type, collection_date, expiry_date, " +
+                "collection_volume_ml, inventory_status) VALUES (?, ?, ?, ?, ?, ?, ?, 'QUARANTINE')";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, bagId);
+            ps.setString(2, donorId);
+            ps.setInt(3, screeningId);
+            ps.setString(4, bloodType);
+            ps.setDate(5, Date.valueOf(collectionDate));
+            ps.setDate(6, Date.valueOf(expiryDate));
+            ps.setInt(7, volumeMl);
+            ps.executeUpdate();
+        }
+    }
+
+    private void updateLastSuccessfulDonation(Connection conn, String donorId, LocalDate date) throws SQLException {
+        String sql = "UPDATE donors SET last_successful_donation = ? WHERE donor_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(date));
+            ps.setString(2, donorId);
+            ps.executeUpdate();
+        }
+    }
+
+    private LocalDate mostRecentDonation(LocalDate d1, LocalDate d2) {
+        if (d1 == null && d2 == null) return null;
+        if (d1 == null) return d2;
+        if (d2 == null) return d1;
+        return d1.isAfter(d2) ? d1 : d2;
+    }
+
+    private void insertAudit(Connection conn, int userId, String actionType, String entityType, String entityId, String details) throws SQLException {
+        String sql = "INSERT INTO audit_log (user_id, action_type, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setString(2, actionType);
+            ps.setString(3, entityType);
+            ps.setString(4, entityId);
+            ps.setString(5, details);
+            ps.executeUpdate();
+        }
+    }
+
     public DohDonor findDonorBySearch(String query) {
-        String sql = "SELECT donor_id, first_name, last_name, sex, birth_date, blood_type, barangay, contact_no, last_successful_donation " +
+        String sql = "SELECT donor_id, first_name, middle_name, last_name, sex, birth_date, blood_type, barangay, contact_no, last_successful_donation " +
                 "FROM donors " +
-                "WHERE LOWER(first_name) LIKE LOWER(?) OR LOWER(last_name) LIKE LOWER(?) OR contact_no LIKE ? " +
-                "ORDER BY donor_id DESC LIMIT 1";
+                "WHERE donor_id = ? OR LOWER(first_name) LIKE LOWER(?) OR LOWER(last_name) LIKE LOWER(?) OR contact_no LIKE ? " +
+                "ORDER BY CASE WHEN donor_id = ? THEN 1 ELSE 2 END, donor_id DESC LIMIT 1";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, query);
             String searchPattern = "%" + query + "%";
-            ps.setString(1, searchPattern);
             ps.setString(2, searchPattern);
             ps.setString(3, searchPattern);
+            ps.setString(4, searchPattern);
+            ps.setString(5, query);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new DohDonor(
-                            rs.getInt("donor_id"),
-                            rs.getString("external_card_id"),
-                            rs.getString("external_source"),
+                            rs.getString("donor_id"),
                             rs.getString("first_name"),
                             rs.getString("middle_name") != null ? rs.getString("middle_name") : "",
                             rs.getString("last_name"),
@@ -242,170 +446,7 @@ public class DohDonorDAO {
         return null;
     }
 
-    private int insertDonor(Connection conn, DohDonor donor, LocalDate lastSuccessfulDonation) throws SQLException {
-        String sql = "INSERT INTO donors (external_card_id, external_source, first_name, middle_name, last_name, sex, birth_date, blood_type, barangay, contact_no, last_successful_donation) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, donor.getExternalCardId());
-            ps.setString(2, donor.getExternalSource());
-            ps.setString(3, donor.getFirstName());
-            ps.setString(4, donor.getMiddleName());
-            ps.setString(5, donor.getLastName());
-            ps.setString(6, donor.getSex());
-            ps.setDate(7, Date.valueOf(donor.getBirthdate()));
-            ps.setString(8, donor.getBloodType());
-            ps.setString(9, donor.getBarangay());
-            ps.setString(10, donor.getContact());
-            ps.setDate(11, lastSuccessfulDonation != null ? Date.valueOf(lastSuccessfulDonation) : null);
-            ps.executeUpdate();
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-        }
-        throw new SQLException("Unable to create donor record.");
-    }
-
-    private void updateDonor(Connection conn, int donorId, DohDonor donor, LocalDate lastSuccessfulDonation) throws SQLException {
-        String sql = "UPDATE donors SET first_name = ?, last_name = ?, sex = ?, birth_date = ?, blood_type = ?, barangay = ?, " +
-                "contact_no = ?, last_successful_donation = ? WHERE donor_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, donor.getFirstName());
-            ps.setString(2, donor.getLastName());
-            ps.setString(3, donor.getSex());
-            ps.setDate(4, Date.valueOf(donor.getBirthdate()));
-            ps.setString(5, donor.getBloodType());
-            ps.setString(6, donor.getBarangay());
-            ps.setString(7, donor.getContact());
-            ps.setDate(8, lastSuccessfulDonation == null ? null : Date.valueOf(lastSuccessfulDonation));
-            ps.setInt(9, donorId);
-            ps.executeUpdate();
-        }
-    }
-
-    private int insertScreening(Connection conn, int donorId, ScreeningInput screening, int screenedBy,
-                                ScreeningDecision decision) throws SQLException {
-        String sql = "INSERT INTO donor_screening (" +
-                "donor_id, screened_by, screening_date, intended_collection_date, weight_kg, blood_pressure, systolic_bp, diastolic_bp, " +
-                "pulse_bpm, temperature_c, hemoglobin_g_dl, slept_hours, guardian_consent_provided, had_meal, alcohol_in_last_24h, " +
-                "has_fever_cough_colds, had_tattoo_or_piercing_last_12m, had_recent_operation, currently_pregnant, " +
-                "screening_status, decision_reason, next_eligible_date) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, donorId);
-            ps.setInt(2, screenedBy);
-            ps.setDate(3, Date.valueOf(LocalDate.now()));
-            ps.setDate(4, Date.valueOf(screening.getCollectionDate()));
-            ps.setDouble(5, screening.getWeightKg());
-            ps.setString(6, screening.getBloodPressureDisplay());
-            ps.setInt(7, screening.getSystolicBp());
-            ps.setInt(8, screening.getDiastolicBp());
-            ps.setInt(9, screening.getPulseBpm());
-            ps.setDouble(10, screening.getTemperatureC());
-            ps.setDouble(11, screening.getHemoglobinGdl());
-            ps.setDouble(12, screening.getSleptHours());
-            ps.setBoolean(13, screening.isGuardianConsentProvided());
-            ps.setBoolean(14, screening.isHadMeal());
-            ps.setBoolean(15, screening.isAlcoholInLast24h());
-            ps.setBoolean(16, screening.isHasFeverCoughColds());
-            ps.setBoolean(17, screening.isHadTattooOrPiercingLast12Months());
-            ps.setBoolean(18, screening.isHadRecentOperation());
-            ps.setBoolean(19, screening.isCurrentlyPregnant());
-            ps.setString(20, decision.status);
-            ps.setString(21, decision.message);
-            ps.setDate(22, decision.nextEligibleDate == null ? null : Date.valueOf(decision.nextEligibleDate));
-            ps.executeUpdate();
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-        }
-        throw new SQLException("Unable to store donor screening.");
-    }
-
-    private void insertBag(Connection conn, String bagId, int donorId, int screeningId, String bloodType, LocalDate collectionDate, int volumeMl)
-            throws SQLException {
-        String sql = "INSERT INTO blood_inventory (" +
-                "bag_id, donor_id, screening_id, blood_type, component, collection_volume_ml, collection_date, expiry_date, " +
-                "tti_hiv, tti_hbv, tti_hcv, tti_syphilis, tti_malaria, tti_overall_status, inventory_status) " +
-                "VALUES (?, ?, ?, ?, 'WHOLE_BLOOD', ?, ?, ?, 'PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING', 'PENDING', 'QUARANTINE')";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, bagId);
-            ps.setInt(2, donorId);
-            ps.setInt(3, screeningId);
-            ps.setString(4, bloodType);
-            ps.setInt(5, volumeMl);
-            ps.setDate(6, Date.valueOf(collectionDate));
-            ps.setDate(7, Date.valueOf(collectionDate.plusDays(35)));
-            ps.executeUpdate();
-        }
-    }
-
-    private void updateLastSuccessfulDonation(Connection conn, int donorId, LocalDate collectionDate) throws SQLException {
-        String sql = "UPDATE donors SET last_successful_donation = ? WHERE donor_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setDate(1, Date.valueOf(collectionDate));
-            ps.setInt(2, donorId);
-            ps.executeUpdate();
-        }
-    }
-
-    private String nextBagId(Connection conn, LocalDate collectionDate) throws SQLException {
-        String yearCode = String.format("%02d", collectionDate.getYear() % 100);
-        String prefix = FACILITY_CODE + "-" + yearCode + "-";
-        String sql = "SELECT bag_id FROM blood_inventory WHERE bag_id LIKE ? ORDER BY bag_id DESC LIMIT 1";
-        int nextSequence = 1;
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, prefix + "%");
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    String bagId = rs.getString("bag_id");
-                    String[] parts = bagId.split("-");
-                    if (parts.length == 3) {
-                        nextSequence = Integer.parseInt(parts[2]) + 1;
-                    }
-                }
-            }
-        }
-        return prefix + String.format("%06d", nextSequence);
-    }
-
-    private LocalDate mostRecentDonation(LocalDate databaseDate, LocalDate formDate) {
-        if (databaseDate == null) {
-            return formDate;
-        }
-        if (formDate == null || databaseDate.isAfter(formDate)) {
-            return databaseDate;
-        }
-        return formDate;
-    }
-
-    private LocalDate laterDate(LocalDate current, LocalDate candidate) {
-        if (candidate == null) {
-            return current;
-        }
-        if (current == null || candidate.isAfter(current)) {
-            return candidate;
-        }
-        return current;
-    }
-
-    private void insertAudit(Connection conn, int userId, String actionType, String entityType, String entityId, String details)
-            throws SQLException {
-        String sql = "INSERT INTO audit_log (user_id, action_type, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            ps.setString(2, actionType);
-            ps.setString(3, entityType);
-            ps.setString(4, entityId);
-            ps.setString(5, details);
-            ps.executeUpdate();
-        }
-    }
-
-    public int getTotalDonorCount() {
+    public int getTotalDonorCount() throws SQLException {
         String sql = "SELECT COUNT(*) FROM donors";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -413,41 +454,7 @@ public class DohDonorDAO {
             if (rs.next()) {
                 return rs.getInt(1);
             }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to count donors.", e);
         }
         return 0;
-    }
-
-    private static class ExistingDonor {
-        private final int id;
-        private final LocalDate lastSuccessfulDonation;
-
-        private ExistingDonor(int id, LocalDate lastSuccessfulDonation) {
-            this.id = id;
-            this.lastSuccessfulDonation = lastSuccessfulDonation;
-        }
-    }
-
-    private static class ScreeningDecision {
-        private final boolean eligible;
-        private final String status;
-        private final String message;
-        private final LocalDate nextEligibleDate;
-
-        private ScreeningDecision(boolean eligible, String status, String message, LocalDate nextEligibleDate) {
-            this.eligible = eligible;
-            this.status = status;
-            this.message = message;
-            this.nextEligibleDate = nextEligibleDate;
-        }
-
-        private static ScreeningDecision eligible(String message, LocalDate nextEligibleDate) {
-            return new ScreeningDecision(true, "ELIGIBLE", message, nextEligibleDate);
-        }
-
-        private static ScreeningDecision deferred(String message, LocalDate nextEligibleDate) {
-            return new ScreeningDecision(false, "TEMPORARILY_DEFERRED", message, nextEligibleDate);
-        }
     }
 }

@@ -27,10 +27,10 @@ public class DohInventoryDAO {
         refreshExpiredBags();
         List<BloodBagRecord> records = new ArrayList<>();
         String sql = "SELECT bi.bag_id, bi.donor_id, " +
-                "TRIM(CONCAT_WS(' ', d.first_name, d.last_name)) AS donor_name, " +
+                "TRIM(CONCAT_WS(' ', d.first_name, d.middle_name, d.last_name)) AS donor_name, " +
                 "d.barangay, " +
                 "bi.blood_type, bi.collection_date, " +
-                "bi.expiry_date, bi.tti_overall_status AS tti_status, bi.inventory_status AS status " +
+                "bi.expiry_date, bi.inventory_status, bi.tti_overall_status " +
                 "FROM blood_inventory bi " +
                 "INNER JOIN donors d ON d.donor_id = bi.donor_id " +
                 "ORDER BY bi.collection_date DESC, bi.bag_id DESC";
@@ -40,14 +40,14 @@ public class DohInventoryDAO {
             while (rs.next()) {
                 records.add(new BloodBagRecord(
                         rs.getString("bag_id"),
-                        rs.getInt("donor_id"),
+                        rs.getString("donor_id"),
                         rs.getString("donor_name"),
                         rs.getString("barangay"),
                         rs.getString("blood_type"),
                         rs.getDate("collection_date").toLocalDate(),
                         rs.getDate("expiry_date").toLocalDate(),
-                        rs.getString("tti_status"),
-                        rs.getString("status")
+                        rs.getString("inventory_status"),  // param 8: inventoryStatus
+                        rs.getString("tti_overall_status")   // param 9: ttiStatus
                 ));
             }
         } catch (SQLException e) {
@@ -58,128 +58,54 @@ public class DohInventoryDAO {
 
     public DashboardSummary fetchDashboardSummary() {
         refreshExpiredBags();
-        try (Connection conn = DBConnection.getConnection()) {
-            int totalBags = countTotalBags(conn);
-            int expiringSoon = countExpiringSoon(conn);
-            List<String> criticalLines = criticalStockLines(conn);
-            return new DashboardSummary(totalBags, expiringSoon, criticalLines);
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to load dashboard metrics.", e);
-        }
-    }
-
-    public InventoryActionResult releaseBagAfterScreening(String bagId, TtiScreeningInput screeningInput, int userId) {
-        refreshExpiredBags();
-        String selectSql = "SELECT inventory_status, expiry_date FROM blood_inventory WHERE bag_id = ?";
-        String updateSql = "UPDATE blood_inventory SET tti_hiv = ?, tti_hbv = ?, tti_hcv = ?, tti_syphilis = ?, " +
-                "tti_malaria = ?, tti_overall_status = ?, tti_tested_at = ?, tti_tested_by = ?, tti_test_kit = ?, " +
-                "inventory_status = ?, disposition_notes = ? WHERE bag_id = ?";
+        // Count TOTAL bags
+        int totalBags = 0;
+        String totalSql = "SELECT COUNT(*) FROM blood_inventory";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement select = conn.prepareStatement(selectSql)) {
-            select.setString(1, bagId);
-            try (ResultSet rs = select.executeQuery()) {
-                if (!rs.next()) {
-                    return InventoryActionResult.failure("Selected bag was not found.");
-                }
-                String status = rs.getString("inventory_status");
-                LocalDate expiry = rs.getDate("expiry_date").toLocalDate();
-                if (expiry.isBefore(LocalDate.now()) || "EXPIRED".equalsIgnoreCase(status)) {
-                    return InventoryActionResult.failure("Expired blood cannot be released.");
-                }
-                if (!"QUARANTINE".equalsIgnoreCase(status)) {
-                    return InventoryActionResult.failure("Only quarantined bags can be processed for release.");
-                }
+             PreparedStatement ps = conn.prepareStatement(totalSql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                totalBags = rs.getInt(1);
             }
-
-            boolean allNonReactive = screeningInput.allNonReactive();
-            try (PreparedStatement update = conn.prepareStatement(updateSql)) {
-                update.setString(1, screeningInput.getHiv());
-                update.setString(2, screeningInput.getHbv());
-                update.setString(3, screeningInput.getHcv());
-                update.setString(4, screeningInput.getSyphilis());
-                update.setString(5, screeningInput.getMalaria());
-                update.setString(6, allNonReactive ? "CLEARED" : "REACTIVE");
-                update.setTimestamp(7, Timestamp.valueOf(java.time.LocalDateTime.now()));
-                update.setInt(8, userId);
-                update.setString(9, screeningInput.getTestKit());
-                update.setString(10, allNonReactive ? "AVAILABLE" : "DISCARDED");
-                update.setString(11, screeningInput.getRemarks());
-                update.setString(12, bagId);
-                update.executeUpdate();
-            }
-
-            insertAudit(conn, userId, allNonReactive ? "TTI_RELEASED" : "TTI_REACTIVE",
-                    "blood_inventory", bagId,
-                    allNonReactive ? "Bag released after non-reactive TTI screening." : "Bag discarded after reactive TTI screening.");
-
-            if (allNonReactive) {
-                return InventoryActionResult.success("Bag " + bagId + " cleared and moved to AVAILABLE stock.");
-            }
-            return InventoryActionResult.success("Reactive TTI result recorded. Bag " + bagId + " moved to DISCARDED.");
         } catch (SQLException e) {
-            return InventoryActionResult.failure("Release failed: " + e.getMessage());
+            throw new RuntimeException("Failed to count bags.", e);
         }
-    }
 
-    public InventoryActionResult issueBag(String bagId, IssueRequestInput request, int userId) {
-        refreshExpiredBags();
-        String selectSql = "SELECT inventory_status, tti_overall_status, expiry_date FROM blood_inventory WHERE bag_id = ?";
-        String updateSql = "UPDATE blood_inventory SET inventory_status = ?, crossmatch_status = ?, issue_patient_name = ?, " +
-                "patient_hospital_no = ?, request_hospital = ?, requesting_physician = ?, blood_request_no = ?, " +
-                "issued_at = NOW(), issued_by = ?, issue_notes = ? WHERE bag_id = ?";
+        // Count EXPIRED bags
+        int expiryWarnings = 0;
+        String expirySql = "SELECT COUNT(*) FROM blood_inventory WHERE expiry_date < ? " +
+                "AND inventory_status NOT IN ('ISSUED', 'DISCARDED', 'EXPIRED')";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement select = conn.prepareStatement(selectSql)) {
-            select.setString(1, bagId);
-            try (ResultSet rs = select.executeQuery()) {
-                if (!rs.next()) {
-                    return InventoryActionResult.failure("Selected bag was not found.");
-                }
-                String status = rs.getString("inventory_status");
-                String ttiStatus = rs.getString("tti_overall_status");
-                LocalDate expiry = rs.getDate("expiry_date").toLocalDate();
-                if (expiry.isBefore(LocalDate.now()) || "EXPIRED".equalsIgnoreCase(status)) {
-                    return InventoryActionResult.failure("Expired blood cannot be issued.");
-                }
-                if (!"AVAILABLE".equalsIgnoreCase(status) || !"CLEARED".equalsIgnoreCase(ttiStatus)) {
-                    if ("AVAILABLE".equalsIgnoreCase(status) && "DISCARDED".equalsIgnoreCase(ttiStatus)) {
-                        return InventoryActionResult.failure("Bag was discarded due to reactive TTI result.");
-                    }
-                    return InventoryActionResult.failure("Only AVAILABLE bags with cleared TTI screening can be issued.");
+             PreparedStatement ps = conn.prepareStatement(expirySql)) {
+            ps.setDate(1, Date.valueOf(LocalDate.now()));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    expiryWarnings = rs.getInt(1);
                 }
             }
-
-            if (request == null) {
-                return InventoryActionResult.failure("Issuance details are required.");
-            }
-            if (blank(request.getPatientName()) || blank(request.getRequestHospital())
-                    || blank(request.getRequestingPhysician()) || blank(request.getBloodRequestNo())) {
-                return InventoryActionResult.failure("Patient, hospital, physician, and blood request number are required.");
-            }
-            if (!"COMPATIBLE".equalsIgnoreCase(request.getCrossmatchStatus())
-                    && !"NOT_REQUIRED".equalsIgnoreCase(request.getCrossmatchStatus())) {
-                return InventoryActionResult.failure("Only COMPATIBLE or NOT_REQUIRED requests can proceed to issuance.");
-            }
-
-            try (PreparedStatement update = conn.prepareStatement(updateSql)) {
-                update.setString(1, "ISSUED");
-                update.setString(2, request.getCrossmatchStatus());
-                update.setString(3, request.getPatientName());
-                update.setString(4, request.getPatientHospitalNo());
-                update.setString(5, request.getRequestHospital());
-                update.setString(6, request.getRequestingPhysician());
-                update.setString(7, request.getBloodRequestNo());
-                update.setInt(8, userId);
-                update.setString(9, request.getIssueNotes());
-                update.setString(10, bagId);
-                update.executeUpdate();
-            }
-            insertAudit(conn, userId, "BAG_ISSUED", "blood_inventory", bagId,
-                    "Issued to " + request.getPatientName() + " for " + request.getRequestHospital()
-                            + " under request " + request.getBloodRequestNo() + ".");
-            return InventoryActionResult.success("Bag " + bagId + " marked as ISSUED.");
         } catch (SQLException e) {
-            return InventoryActionResult.failure("Issuance failed: " + e.getMessage());
+            throw new RuntimeException("Failed to count expired bags.", e);
         }
+
+        // Critical stock: blood types with < 5 AVAILABLE bags
+        Map<String, Integer> availableByType = new LinkedHashMap<>();
+        for (String bt : BLOOD_TYPES) {
+            availableByType.put(bt, 0);
+        }
+        List<BloodBagRecord> inventory = fetchInventory();
+        for (BloodBagRecord r : inventory) {
+            if ("AVAILABLE".equalsIgnoreCase(r.getEffectiveStatus())) {
+                availableByType.put(r.getBloodType(), availableByType.get(r.getBloodType()) + 1);
+            }
+        }
+        List<String> criticalStockLines = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : availableByType.entrySet()) {
+            if (entry.getValue() < 5) {
+                criticalStockLines.add(entry.getKey() + ": " + entry.getValue() + " units");
+            }
+        }
+
+        return new DashboardSummary(totalBags, expiryWarnings, criticalStockLines);
     }
 
     public void refreshExpiredBags() {
@@ -190,73 +116,132 @@ public class DohInventoryDAO {
             ps.setDate(1, Date.valueOf(LocalDate.now()));
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to update expired inventory.", e);
+            throw new RuntimeException("Failed to refresh expired bags.", e);
         }
     }
 
-    private int countTotalBags(Connection conn) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM blood_inventory";
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            rs.next();
-            return rs.getInt(1);
-        }
-    }
-
-    private int countExpiringSoon(Connection conn) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM blood_inventory WHERE expiry_date BETWEEN ? AND ? " +
-                "AND inventory_status NOT IN ('ISSUED', 'DISCARDED', 'EXPIRED')";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setDate(1, Date.valueOf(LocalDate.now()));
-            ps.setDate(2, Date.valueOf(LocalDate.now().plusDays(7)));
-            try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                return rs.getInt(1);
+    public InventoryActionResult releaseBag(String bagId, TtiScreeningInput tti) {
+        // Check current status before releasing
+        String selectSql = "SELECT inventory_status, tti_overall_status, expiry_date FROM blood_inventory WHERE bag_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement selectPs = conn.prepareStatement(selectSql)) {
+            selectPs.setString(1, bagId);
+            try (ResultSet rs = selectPs.executeQuery()) {
+                if (!rs.next()) {
+                    return InventoryActionResult.failure("Bag not found: " + bagId);
+                }
+                String status = rs.getString("inventory_status");
+                LocalDate expiry = rs.getDate("expiry_date").toLocalDate();
+                
+                if (expiry.isBefore(LocalDate.now()) || "EXPIRED".equalsIgnoreCase(status)) {
+                    return InventoryActionResult.failure("Bag is expired. Cannot release.");
+                }
+                if (!"QUARANTINE".equalsIgnoreCase(status)) {
+                    return InventoryActionResult.failure("Bag must be in QUARANTINE to release. Current: " + status);
+                }
             }
-        }
-    }
-
-    private List<String> criticalStockLines(Connection conn) throws SQLException {
-        Map<String, Integer> availableCounts = new LinkedHashMap<>();
-        for (String bloodType : BLOOD_TYPES) {
-            availableCounts.put(bloodType, 0);
+        } catch (SQLException e) {
+            return InventoryActionResult.failure("Database error: " + e.getMessage());
         }
 
-        String sql = "SELECT blood_type, COUNT(*) AS bag_count FROM blood_inventory " +
-                "WHERE inventory_status = 'AVAILABLE' AND tti_overall_status = 'CLEARED' GROUP BY blood_type";
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                availableCounts.put(rs.getString("blood_type"), rs.getInt("bag_count"));
-            }
-        }
+        // Determine overall TTI and Inventory status based on screening results
+        boolean isCleared = tti.allNonReactive();
+        String overallStatus = isCleared ? "CLEARED" : "REACTIVE";
+        String inventoryStatus = isCleared ? "AVAILABLE" : "DISCARDED";
 
-        List<String> lines = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : availableCounts.entrySet()) {
-            if (entry.getValue() < 5) {
-                lines.add(entry.getKey() + " - " + entry.getValue() + " bag(s) available");
-            }
-        }
-        if (lines.isEmpty()) {
-            lines.add("All blood types are above the critical threshold.");
-        }
-        return lines;
-    }
-
-    private void insertAudit(Connection conn, int userId, String actionType, String entityType, String entityId, String details)
-            throws SQLException {
-        String sql = "INSERT INTO audit_log (user_id, action_type, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            ps.setString(2, actionType);
-            ps.setString(3, entityType);
-            ps.setString(4, entityId);
-            ps.setString(5, details);
+        String updateSql = "UPDATE blood_inventory SET " +
+                "tti_hiv = ?, tti_hbv = ?, tti_hcv = ?, tti_syphilis = ?, tti_malaria = ?, " +
+                "tti_overall_status = ?, tti_remarks = ?, " +
+                "tti_tested_at = ?, tti_tested_by = ?, tti_test_kit = ?, " +
+                "inventory_status = ? " +
+                "WHERE bag_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            ps.setString(1, tti.getHiv());
+            ps.setString(2, tti.getHbv());
+            ps.setString(3, tti.getHcv());
+            ps.setString(4, tti.getSyphilis());
+            ps.setString(5, tti.getMalaria());
+            ps.setString(6, overallStatus);
+            ps.setString(7, tti.getRemarks());
+            ps.setTimestamp(8, Timestamp.valueOf(tti.getTestedAt()));
+            ps.setInt(9, tti.getTestedBy());
+            ps.setString(10, tti.getTestKit());
+            ps.setString(11, inventoryStatus);
+            ps.setString(12, bagId);
             ps.executeUpdate();
+            
+            if (isCleared) {
+                return InventoryActionResult.success("Bag " + bagId + " screened CLEARED and released to AVAILABLE.");
+            } else {
+                return InventoryActionResult.success("Bag " + bagId + " screened REACTIVE and marked as DISCARDED.");
+            }
+        } catch (SQLException e) {
+            return InventoryActionResult.failure("Failed to release bag: " + e.getMessage());
         }
     }
 
-    private boolean blank(String value) {
-        return value == null || value.trim().isEmpty();
+    public InventoryActionResult discardBag(String bagId, int userId) {
+        String updateSql = "UPDATE blood_inventory SET inventory_status = 'DISCARDED' WHERE bag_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            ps.setString(1, bagId);
+            ps.executeUpdate();
+            return InventoryActionResult.success("Bag " + bagId + " marked as DISCARDED.");
+        } catch (SQLException e) {
+            return InventoryActionResult.failure("Failed to discard bag: " + e.getMessage());
+        }
+    }
+
+    public InventoryActionResult issueBag(IssueRequestInput request) {
+        String selectSql = "SELECT inventory_status, tti_overall_status, expiry_date FROM blood_inventory WHERE bag_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement selectPs = conn.prepareStatement(selectSql)) {
+            selectPs.setString(1, request.getBagId());
+            try (ResultSet rs = selectPs.executeQuery()) {
+                if (!rs.next()) {
+                    return InventoryActionResult.failure("Bag not found: " + request.getBagId());
+                }
+                String status = rs.getString("inventory_status");
+                String ttiStatus = rs.getString("tti_overall_status");
+                
+                if (rs.getDate("expiry_date").toLocalDate().isBefore(LocalDate.now()) || 
+                    "EXPIRED".equalsIgnoreCase(status)) {
+                    return InventoryActionResult.failure("Bag is expired. Cannot issue.");
+                }
+                if (!"AVAILABLE".equalsIgnoreCase(status) || !"CLEARED".equalsIgnoreCase(ttiStatus)) {
+                    return InventoryActionResult.failure("Bag must be AVAILABLE with CLEARED TTI to issue. Current: " + status + ", TTI: " + ttiStatus);
+                }
+                if (!"COMPATIBLE".equalsIgnoreCase(request.getCrossmatchStatus())) {
+                    return InventoryActionResult.failure("Crossmatch must be COMPATIBLE to issue. Current: " + request.getCrossmatchStatus());
+                }
+            }
+        } catch (SQLException e) {
+            return InventoryActionResult.failure("Database error: " + e.getMessage());
+        }
+
+        String updateSql = "UPDATE blood_inventory SET " +
+                "issued_at = ?, issue_patient_name = ?, patient_hospital_no = ?, " +
+                "request_hospital = ?, requesting_physician = ?, blood_request_no = ?, " +
+                "crossmatch_status = ?, issued_by = ?, issue_notes = ?, " +
+                "inventory_status = 'ISSUED' " +
+                "WHERE bag_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            ps.setTimestamp(1, Timestamp.valueOf(request.getIssuedAt()));
+            ps.setString(2, request.getPatientName());
+            ps.setString(3, request.getPatientHospitalNo());
+            ps.setString(4, request.getRequestHospital());
+            ps.setString(5, request.getRequestingPhysician());
+            ps.setString(6, request.getBloodRequestNo());
+            ps.setString(7, request.getCrossmatchStatus());
+            ps.setInt(8, request.getIssuedBy());
+            ps.setString(9, request.getIssueNotes());
+            ps.setString(10, request.getBagId());
+            ps.executeUpdate();
+            return InventoryActionResult.success("Bag " + request.getBagId() + " issued successfully.");
+        } catch (SQLException e) {
+            return InventoryActionResult.failure("Failed to issue bag: " + e.getMessage());
+        }
     }
 }

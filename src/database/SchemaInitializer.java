@@ -214,9 +214,9 @@ public final class SchemaInitializer {
             }
         }
 
-        // Drop external_card_id and external_source columns if they exist (v2.2 migration)
-        dropColumnIfExists(conn, "donors", "external_card_id");
-        dropColumnIfExists(conn, "donors", "external_source");
+        // Ensure external_card_id and id_source columns exist (v2.2+ mapping)
+        ensureColumn(conn, "donors", "external_card_id", "ALTER TABLE donors ADD COLUMN external_card_id VARCHAR(50) NULL AFTER contact_no");
+        ensureColumn(conn, "donors", "id_source", "ALTER TABLE donors ADD COLUMN id_source VARCHAR(20) NULL AFTER external_card_id");
     }
 
     private static void ensureUsersTable(Connection conn) throws SQLException {

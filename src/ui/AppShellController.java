@@ -87,7 +87,7 @@ public class AppShellController {
             double width = Screen.getPrimary().getVisualBounds().getWidth();
             double height = Screen.getPrimary().getVisualBounds().getHeight();
             javafx.scene.Scene scene = new javafx.scene.Scene(view, width, height);
-            scene.getStylesheets().add(FxmlView.stylesheet("nbda-modern.css"));
+            scene.getStylesheets().add(FxmlView.stylesheet("style.css"));
             javafx.stage.Stage stage = (javafx.stage.Stage) contentArea.getScene().getWindow();
             stage.setScene(scene);
             stage.setFullScreen(true);
@@ -110,7 +110,7 @@ public class AppShellController {
 
             if (contentArea.getScene() != null) {
                 contentArea.getScene().getStylesheets().clear();
-                contentArea.getScene().getStylesheets().add(FxmlView.stylesheet("nbda-modern.css"));
+                contentArea.getScene().getStylesheets().add(FxmlView.stylesheet("style.css"));
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to load view: " + fxml, e);

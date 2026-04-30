@@ -35,7 +35,7 @@ public class RecordDonationController {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy");
 
     private final DohDonorDAO donorDAO = new DohDonorDAO();
-    private Integer selectedDonorId = null;
+    private String selectedDonorId = null;
     private DohDonor foundDonor = null;
 
     @FXML private TextField searchField;
@@ -45,8 +45,6 @@ public class RecordDonationController {
 
     @FXML private TextField firstNameField;
     @FXML private TextField lastNameField;
-    @FXML private TextField externalCardIdField;
-    @FXML private TextField externalSourceField;
     @FXML private ComboBox<String> bloodTypeCombo;
     @FXML private ComboBox<String> barangayCombo;
 
@@ -75,6 +73,7 @@ public class RecordDonationController {
     public void initialize() {
         bloodTypeCombo.setItems(FXCollections.observableArrayList("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"));
         barangayCombo.setItems(FXCollections.observableArrayList(BARANGAYS));
+        searchField.setPromptText("Enter Donor ID (e.g., NBDA-2026-00001)");
         collectionDatePicker.setValue(LocalDate.now());
 
         setupInputRestrictions();
@@ -119,7 +118,11 @@ public class RecordDonationController {
     private void restrictToDecimal(KeyEvent e, TextField field) {
         String text = e.getCharacter();
         String current = field.getText();
-        if (!text.matches("[\\d.]") || current.contains(".")) {
+        if (text.equals(".")) {
+            if (current.contains(".")) {
+                e.consume();
+            }
+        } else if (!text.matches("\\d")) {
             e.consume();
         }
     }
@@ -128,7 +131,7 @@ public class RecordDonationController {
     private void searchDonor() {
         String query = searchField.getText().trim();
         if (query.isEmpty()) {
-            donorInfoLabel.setText("Enter name or contact number to search");
+            donorInfoLabel.setText("Enter Donor ID to search (e.g., NBDA-2026-00001)");
             donorInfoLabel.setStyle("-fx-text-fill: #64748B;");
             eligibilityStatusLabel.setText("Status will appear after search");
             return;
@@ -140,8 +143,6 @@ public class RecordDonationController {
             foundDonor = donor;
             firstNameField.setText(donor.getFirstName());
             lastNameField.setText(donor.getLastName());
-            externalCardIdField.setText(donor.getExternalCardId() != null ? donor.getExternalCardId() : "—");
-            externalSourceField.setText(donor.getExternalSource() != null ? donor.getExternalSource() : "—");
             bloodTypeCombo.setValue(donor.getBloodType());
             barangayCombo.setValue(donor.getBarangay());
 
@@ -169,9 +170,9 @@ public class RecordDonationController {
             resultLabel.setText("Donor found. Verify medical screening and submit.");
         } else {
             selectedDonorId = null;
-            donorInfoLabel.setText("No donor found with that search term");
+            donorInfoLabel.setText("No donor found with that ID");
             donorInfoLabel.setStyle("-fx-text-fill: #EF4444;");
-            eligibilityStatusLabel.setText("Please check the name or contact and try again");
+            eligibilityStatusLabel.setText("Please check the Donor ID and try again");
             eligibilityStatusLabel.setStyle("-fx-text-fill: #EF4444;");
             setEligibilityStatus("Not Found", "status-pill-danger");
             clearDonorFields();
@@ -242,6 +243,8 @@ public class RecordDonationController {
                 feverCheckBox != null && !feverCheckBox.isSelected(),
                 tattooCheckBox != null && !tattooCheckBox.isSelected(),
                 false,
+                false,
+                null,
                 false
         );
 
@@ -282,8 +285,6 @@ public class RecordDonationController {
         searchField.clear();
         firstNameField.clear();
         lastNameField.clear();
-        externalCardIdField.clear();
-        externalSourceField.clear();
         bloodTypeCombo.getSelectionModel().clearSelection();
         barangayCombo.getSelectionModel().clearSelection();
         collectionDatePicker.setValue(LocalDate.now());
@@ -309,8 +310,6 @@ public class RecordDonationController {
     private void clearDonorFields() {
         firstNameField.clear();
         lastNameField.clear();
-        externalCardIdField.clear();
-        externalSourceField.clear();
         bloodTypeCombo.getSelectionModel().clearSelection();
         barangayCombo.getSelectionModel().clearSelection();
         foundDonor = null;

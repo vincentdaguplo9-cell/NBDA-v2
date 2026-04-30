@@ -36,6 +36,7 @@ import model.IssueRequestInput;
 import model.TtiScreeningInput;
 import model.UserAccount;
 
+import java.io.FileWriter;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Function;
+import javafx.stage.FileChooser;
 
 // Inventory controller with pagination-based archive browsing.
 public class InventoryViewController {
@@ -73,6 +75,7 @@ public class InventoryViewController {
     @FXML private ComboBox<String> barangayFilterCombo;
     @FXML private ComboBox<String> statusFilterCombo;
     @FXML private Button clearFilterButton;
+    @FXML private Button exportCsvButton;
 
     private static final List<String> BARANGAYS = Arrays.asList(
             "Agpangi", "Anislagan", "Atipolo", "Bato", "Borac", "Cabungaan", "Calumpang", "Catmon",
@@ -182,7 +185,7 @@ public class InventoryViewController {
     @FXML
     private void refreshInventory() {
         inventoryItems.setAll(inventoryDAO.fetchInventory());
-        applyFilter(searchField.getText());
+        applyAllFilters();
     }
 
     @FXML
@@ -220,21 +223,6 @@ public class InventoryViewController {
         alert.initOwner(inventoryTable.getScene().getWindow());
         alert.showAndWait();
         refreshInventory();
-    }
-
-    private void applyFilter(String rawQuery) {
-        String query = rawQuery == null ? "" : rawQuery.trim().toLowerCase(Locale.ROOT);
-        filteredInventory.setPredicate(record -> {
-            if (query.isBlank()) {
-                return true;
-            }
-            return contains(record.getBagId(), query)
-                    || contains(record.getBarangay(), query)
-                    || contains(record.getDonorName(), query)
-                    || contains(record.getBloodType(), query)
-                    || contains(record.getEffectiveStatus(), query);
-        });
-        rebuildPagination(0);
     }
 
     private void rebuildPagination(int preferredIndex) {
@@ -382,7 +370,13 @@ public class InventoryViewController {
         if (input.isEmpty()) {
             return InventoryActionResult.failure("TTI screening was canceled.");
         }
-        return inventoryDAO.releaseBagAfterScreening(bagId, input.get(), user.getUserId());
+        // Get the actual TTI input from Optional and add testedAt and testedBy
+        TtiScreeningInput tti = input.get();
+        TtiScreeningInput ttiWithUser = new TtiScreeningInput(
+                tti.getHiv(), tti.getHbv(), tti.getHcv(), 
+                tti.getSyphilis(), tti.getMalaria(), tti.getTestKit(), 
+                tti.getRemarks(), java.time.LocalDateTime.now(), user.getUserId());
+        return inventoryDAO.releaseBag(bagId, ttiWithUser);
     }
 
     private InventoryActionResult processIssue(String bagId) {
@@ -394,7 +388,14 @@ public class InventoryViewController {
         if (request.isEmpty()) {
             return InventoryActionResult.failure("Issuance was canceled.");
         }
-        return inventoryDAO.issueBag(bagId, request.get(), user.getUserId());
+        // Get the actual IssueRequestInput from Optional and add bagId, issuedAt and issuedBy
+        IssueRequestInput req = request.get();
+        IssueRequestInput reqWithUser = new IssueRequestInput(
+                bagId, req.getPatientName(), req.getPatientHospitalNo(),
+                req.getRequestHospital(), req.getRequestingPhysician(), 
+                req.getBloodRequestNo(), req.getCrossmatchStatus(), 
+                req.getIssueNotes(), java.time.LocalDateTime.now(), user.getUserId());
+        return inventoryDAO.issueBag(reqWithUser);
     }
 
     private ComboBox<String> ttiCombo() {
@@ -500,5 +501,43 @@ public class InventoryViewController {
         }
         String text = raw.trim();
         return text.isEmpty() ? null : text;
+    }
+
+    @FXML
+    private void exportToCsv() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export Inventory to CSV");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        fileChooser.setInitialFileName("blood_inventory_" + LocalDate.now().toString() + ".csv");
+
+        java.io.File file = fileChooser.showSaveDialog(inventoryTable.getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write("Bag ID,Blood Type,Status,Collected Date,Expiry Date,Donor Name,Barangay\n");
+
+            for (BloodBagRecord record : filteredInventory) {
+                writer.write(String.format("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                        record.getBagId(),
+                        record.getBloodType(),
+                        record.getEffectiveStatus(),
+                        record.getDateCollected() != null ? record.getDateCollected().toString() : "",
+                        record.getDateExpiry() != null ? record.getDateExpiry().toString() : "",
+                        record.getDonorName(),
+                        record.getBarangay()
+                ));
+            }
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Inventory exported successfully to " + file.getName());
+            alert.initOwner(inventoryTable.getScene().getWindow());
+            alert.showAndWait();
+        } catch (Exception e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to export: " + e.getMessage());
+            alert.initOwner(inventoryTable.getScene().getWindow());
+            alert.showAndWait();
+            e.printStackTrace();
+        }
     }
 }

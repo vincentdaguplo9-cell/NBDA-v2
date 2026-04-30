@@ -23,6 +23,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import model.AuditLogRecord;
 import model.DonorRecord;
@@ -30,6 +31,8 @@ import model.IssuanceRecord;
 import model.ScreeningHistoryRecord;
 import model.UserAccount;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -81,8 +84,10 @@ public class RecordsViewController {
     @FXML private Button refreshButton;
     @FXML private Button editDonorButton;
     @FXML private TextField donorSearchField;
+    @FXML private TextField staffSearchField;
     @FXML private TextField screeningSearchField;
     @FXML private TextField issuanceSearchField;
+    @FXML private TextField auditSearchField;
 
     @FXML private Pagination donorPagination;
     @FXML private Pagination screeningPagination;
@@ -171,34 +176,61 @@ public class RecordsViewController {
 
     @FXML
     private void searchDonors() {
-        donorPagination.setDisable(true);
         String query = donorSearchField.getText() == null ? "" : donorSearchField.getText().trim();
         if (query.isEmpty()) {
-            donorTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchDonors()));
+            donorPagination.setDisable(false);
+            loadDonorPage(0);
         } else {
+            donorPagination.setDisable(true);
             donorTable.setItems(FXCollections.observableArrayList(recordsDAO.searchDonors(query)));
         }
     }
 
     @FXML
+    private void searchDonorsByStaff() {
+        String query = staffSearchField.getText() == null ? "" : staffSearchField.getText().trim();
+        if (query.isEmpty()) {
+            donorPagination.setDisable(false);
+            loadDonorPage(0);
+        } else {
+            donorPagination.setDisable(true);
+            donorTable.setItems(FXCollections.observableArrayList(recordsDAO.searchDonorsByStaff(query)));
+        }
+    }
+
+    @FXML
     private void searchScreenings() {
-        screeningPagination.setDisable(true);
         String query = screeningSearchField.getText() == null ? "" : screeningSearchField.getText().trim();
         if (query.isEmpty()) {
-            screeningTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchScreenings()));
+            screeningPagination.setDisable(false);
+            loadScreeningPage(0);
         } else {
+            screeningPagination.setDisable(true);
             screeningTable.setItems(FXCollections.observableArrayList(recordsDAO.searchScreenings(query)));
         }
     }
 
     @FXML
     private void searchIssuances() {
-        issuancePagination.setDisable(true);
         String query = issuanceSearchField.getText() == null ? "" : issuanceSearchField.getText().trim();
         if (query.isEmpty()) {
-            issuanceTable.setItems(FXCollections.observableArrayList(recordsDAO.fetchIssuanceLog()));
+            issuancePagination.setDisable(false);
+            loadIssuancePage(0);
         } else {
+            issuancePagination.setDisable(true);
             issuanceTable.setItems(FXCollections.observableArrayList(recordsDAO.searchIssuances(query)));
+        }
+    }
+
+    @FXML
+    private void searchAudits() {
+        String query = auditSearchField.getText() == null ? "" : auditSearchField.getText().trim();
+        if (query.isEmpty()) {
+            auditPagination.setDisable(false);
+            loadAuditPage(0);
+        } else {
+            auditPagination.setDisable(true);
+            auditTable.setItems(FXCollections.observableArrayList(recordsDAO.searchAudits(query)));
         }
     }
 
@@ -227,7 +259,9 @@ public class RecordsViewController {
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();
-            new Alert(Alert.AlertType.ERROR, "Failed to open donor history: " + e.getMessage()).showAndWait();
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to open donor history: " + e.getMessage());
+            alert.initOwner(donorTable.getScene().getWindow());
+            alert.showAndWait();
         }
     }
 
@@ -235,7 +269,9 @@ public class RecordsViewController {
     private void editSelectedDonor() {
         DonorRecord selected = donorTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            new Alert(Alert.AlertType.WARNING, "Select a donor profile to edit.").showAndWait();
+            Alert alert = new Alert(Alert.AlertType.WARNING, "Select a donor profile to edit.");
+            alert.initOwner(donorTable.getScene().getWindow());
+            alert.showAndWait();
             return;
         }
 
@@ -245,7 +281,9 @@ public class RecordsViewController {
         }
 
         if (!recordsDAO.updateDonor(updated)) {
-            new Alert(Alert.AlertType.ERROR, "Failed to update donor profile.").showAndWait();
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to update donor profile.");
+            alert.initOwner(donorTable.getScene().getWindow());
+            alert.showAndWait();
             return;
         }
 
@@ -255,13 +293,16 @@ public class RecordsViewController {
                     String.valueOf(updated.getDonorId()), "Donor profile edited from records screen.");
         }
         refreshAll();
-        new Alert(Alert.AlertType.INFORMATION, "Donor profile updated.").showAndWait();
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, "Donor profile updated.");
+        alert.initOwner(donorTable.getScene().getWindow());
+        alert.showAndWait();
     }
 
     private DonorRecord showEditDialog(DonorRecord donor) {
         Dialog<DonorRecord> dialog = new Dialog<>();
         dialog.setTitle("Edit Donor");
         dialog.setHeaderText("Update donor masterlist details");
+        dialog.initOwner(donorTable.getScene().getWindow());
 
         TextField firstName = new TextField(donor.getFirstName());
         TextField lastName = new TextField(donor.getLastName());
@@ -296,13 +337,13 @@ public class RecordsViewController {
             }
             if (blank(firstName.getText()) || blank(lastName.getText()) || sex.getValue() == null || birthDate.getValue() == null
                     || bloodType.getValue() == null || barangay.getValue() == null || !isValidMobile(contact.getText())) {
-                new Alert(Alert.AlertType.WARNING, "Complete all required donor fields with a valid Philippine mobile number.").showAndWait();
+                Alert alert = new Alert(Alert.AlertType.WARNING, "Complete all required donor fields with a valid Philippine mobile number.");
+                alert.initOwner(dialog.getOwner());
+                alert.showAndWait();
                 return null;
             }
             return new DonorRecord(
                     donor.getDonorId(),
-                    donor.getExternalCardId(),
-                    donor.getExternalSource(),
                     normalizeName(firstName.getText()),
                     "",
                     normalizeName(lastName.getText()),
@@ -311,6 +352,8 @@ public class RecordsViewController {
                     bloodType.getValue(),
                     barangay.getValue(),
                     normalizeContact(contact.getText()),
+                    donor.getExternalCardId(),
+                    donor.getIdSource(),
                     lastDonation.getValue()
             );
         });
@@ -358,5 +401,74 @@ public class RecordsViewController {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setFixedCellSize(54);
         table.setPlaceholder(new Label("No records available."));
+    }
+
+    @FXML
+    private void exportDonorsToCsv() {
+        exportToCsv("donors", donorTable.getItems(), new String[]{"ID", "Name", "Sex", "Blood Type", "Contact", "Last Donation"},
+                r -> String.format("\"%d\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"",
+                        r.getDonorId(), r.getDisplayName(), r.getSex(), r.getBloodType(), r.getContactNo(),
+                        r.getLastSuccessfulDonation() != null ? r.getLastSuccessfulDonation().toString() : ""));
+    }
+
+    @FXML
+    private void exportScreeningToCsv() {
+        exportToCsv("screening_history", screeningTable.getItems(), new String[]{"ID", "Donor", "Date", "Collection", "Status", "Handled By"},
+                r -> String.format("\"%d\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"",
+                        r.getScreeningId(), r.getDonorName(),
+                        r.getScreeningDate() != null ? r.getScreeningDate().toString() : "",
+                        r.getCollectionDate() != null ? r.getCollectionDate().toString() : "",
+                        r.getStatus(), r.getScreenedBy()));
+    }
+
+    @FXML
+    private void exportIssuanceToCsv() {
+        exportToCsv("issuance_history", issuanceTable.getItems(), new String[]{"Bag ID", "Patient", "Hospital", "Request #", "Crossmatch", "Issued By"},
+                r -> String.format("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"",
+                        r.getBagId(), r.getPatientName(), r.getRequestHospital(),
+                        r.getBloodRequestNo(), r.getCrossmatchStatus(), r.getIssuedBy()));
+    }
+
+    @FXML
+    private void exportAuditToCsv() {
+        exportToCsv("audit_logs", auditTable.getItems(), new String[]{"Timestamp", "User", "Action", "Entity", "Details"},
+                r -> String.format("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"",
+                        r.getEventTime() != null ? r.getEventTime().toString() : "",
+                        r.getActor(), r.getActionType(), r.getEntityType(), r.getDetails()));
+    }
+
+    private <T> void exportToCsv(String type, List<T> items, String[] headers, java.util.function.Function<T, String> rowFormatter) {
+        if (items == null || items.isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.WARNING, "No data to export.");
+            alert.initOwner(donorTable.getScene().getWindow());
+            alert.showAndWait();
+            return;
+        }
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export " + type + " to CSV");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        fileChooser.setInitialFileName(type + "_" + LocalDate.now().toString() + ".csv");
+
+        java.io.File file = fileChooser.showSaveDialog(donorTable.getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write("\"" + String.join("\",\"", headers) + "\"\n");
+            for (T item : items) {
+                writer.write(rowFormatter.apply(item) + "\n");
+            }
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, type + " exported successfully to " + file.getName());
+            alert.initOwner(donorTable.getScene().getWindow());
+            alert.showAndWait();
+        } catch (IOException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to export: " + e.getMessage());
+            alert.initOwner(donorTable.getScene().getWindow());
+            alert.showAndWait();
+            e.printStackTrace();
+        }
     }
 }

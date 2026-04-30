@@ -16,6 +16,7 @@ public class DBConnection {
     private static String URL;
     private static String USER;
     private static String PASS;
+    private static String DB_NAME;
 
     static {
         try {
@@ -51,26 +52,47 @@ public class DBConnection {
         try (FileInputStream in = new FileInputStream(path.toFile())) {
             props.load(in);
         }
-        URL = props.getProperty("db.url");
+        String baseUrl = props.getProperty("db.url");
         USER = props.getProperty("db.user");
         PASS = props.getProperty("db.pass");
-        if (URL == null || USER == null || PASS == null) {
+        if (baseUrl == null || USER == null || PASS == null) {
             throw new IOException("Config file must contain db.url, db.user, db.pass");
+        }
+        DB_NAME = configuredDatabaseName(baseUrl);
+        
+        // Use the base URL and ensure it has necessary parameters for connectivity
+        if (baseUrl.contains("?")) {
+            URL = baseUrl + "&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&connectTimeout=10000";
+        } else {
+            URL = baseUrl + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&connectTimeout=10000";
         }
     }
 
     // Get a new database connection.
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASS);
+        Properties props = new Properties();
+        props.setProperty("user", USER);
+        props.setProperty("password", PASS);
+        props.setProperty("allowPublicKeyRetrieval", "true");
+        
+        return DriverManager.getConnection(URL, props);
     }
 
     public static Connection getServerConnection() throws SQLException {
-        return DriverManager.getConnection(serverUrl(URL), USER, PASS);
+        Properties props = new Properties();
+        props.setProperty("user", USER);
+        props.setProperty("password", PASS);
+        props.setProperty("allowPublicKeyRetrieval", "true");
+        
+        // Extract server URL from the configured URL
+        int slashIndex = URL.indexOf("/", URL.indexOf("://") + 3);
+        String serverUrl = slashIndex > 0 ? URL.substring(0, slashIndex) : URL;
+        
+        return DriverManager.getConnection(serverUrl, props);
     }
 
     public static String getConfiguredDatabaseName() {
-        String dbName = configuredDatabaseName(URL);
-        return dbName == null || dbName.isBlank() ? "blood_archive" : dbName;
+        return DB_NAME != null && !DB_NAME.isBlank() ? DB_NAME : "blood_archive";
     }
 
     private static String configuredDatabaseName(String jdbcUrl) {
@@ -84,17 +106,5 @@ public class DBConnection {
                 ? jdbcUrl.substring(slashIndex + 1, queryIndex)
                 : jdbcUrl.substring(slashIndex + 1);
         return dbName.isBlank() ? null : dbName;
-    }
-
-    private static String serverUrl(String jdbcUrl) {
-        int schemeIndex = jdbcUrl.indexOf("://");
-        int slashIndex = jdbcUrl.indexOf('/', schemeIndex >= 0 ? schemeIndex + 3 : 0);
-        if (slashIndex < 0) {
-            return jdbcUrl;
-        }
-        int queryIndex = jdbcUrl.indexOf('?', slashIndex);
-        String prefix = jdbcUrl.substring(0, slashIndex + 1);
-        String suffix = queryIndex >= 0 ? jdbcUrl.substring(queryIndex) : "";
-        return prefix + suffix;
     }
 }
