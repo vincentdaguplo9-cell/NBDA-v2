@@ -3,3 +3,4 @@ build/
 config/db.properties
 *.class
 *.jar
+javafx-sdk/
