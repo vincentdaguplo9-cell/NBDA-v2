@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Circle?>
+
+<StackPane styleClass="login-root" stylesheets="@../css/style.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.LoginController">
+    <HBox spacing="0">
+        
+        <StackPane styleClass="brand-panel" HBox.hgrow="ALWAYS">
+            <Region styleClass="brand-overlay" />
+            <VBox alignment="CENTER" spacing="40.0">
+                <padding><Insets bottom="80.0" left="60.0" right="60.0" top="80.0" /></padding>
+            
+                <StackPane styleClass="logo-container-large" maxWidth="-Infinity">
+                    <Circle fill="WHITE" radius="70.0" />
+                    <Label styleClass="logo-text-icon" text="NBDA" />
+                </StackPane>
+                
+                <VBox alignment="CENTER" spacing="15.0">
+                    <Label styleClass="brand-title-main" text="Naval Blood Donation Archive" textAlignment="CENTER" wrapText="true" />
+                    <Label styleClass="brand-subtitle-main" text="Professional Donor &amp; Inventory Management" />
+                </VBox>
+                
+                <Region VBox.vgrow="ALWAYS" />
+                
+                <VBox alignment="CENTER" spacing="8.0">
+                    <Label style="-fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-font-size: 13px; -fx-letter-spacing: 1.5px;" text="MEDICAL INFORMATION SYSTEM" />
+                    <Label style="-fx-text-fill: #64748b; -fx-font-size: 12px;" text="Serving Naval, Biliran since 2026" />
+                </VBox>
+            </VBox>
+        </StackPane>
+        
+        <VBox alignment="CENTER" prefWidth="600.0" styleClass="login-form-side">
+            <VBox maxWidth="450.0" spacing="40.0" styleClass="login-card-elevated">
+                
+                <VBox spacing="12.0">
+                    <Label styleClass="login-header-text" text="Authorized Access" />
+                    <Label styleClass="login-sub-text" text="Please sign in to access the medical archive." />
+                </VBox>
+
+                <VBox spacing="30.0">
+                    <VBox spacing="10.0">
+                        <Label styleClass="field-label" text="System Username" />
+                        <TextField fx:id="usernameField" promptText="Enter your username" styleClass="modern-input" />
+                    </VBox>
+                    
+                    <VBox spacing="12.0">
+                        <Label styleClass="field-label" text="Secure Password" />
+                        <StackPane>
+                            <PasswordField fx:id="passwordField" promptText="••••••••" styleClass="modern-input" />
+                            <TextField fx:id="passwordTextField" styleClass="modern-input" visible="false" />
+                        </StackPane>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <padding><Insets top="5.0" /></padding>
+                            <CheckBox fx:id="showPasswordCheck" onAction="#togglePasswordVisibility" styleClass="check-box" text="Show Password" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Hyperlink styleClass="link-small" text="System Support" />
+                        </HBox>
+                    </VBox>
+                </VBox>
+
+                <VBox spacing="25.0">
+                    <Label fx:id="statusLabel" styleClass="error-text-label" text="" wrapText="true" />
+                    <Button fx:id="loginButton" maxWidth="Infinity" onAction="#handleLogin" prefHeight="60.0" styleClass="button-primary" text="Sign In to Portal" />
+                </VBox>
+            </VBox>
+        </VBox>
+    </HBox>
+</StackPane>

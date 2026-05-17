@@ -1,0 +1,5 @@
+.opencode
+build/
+config/db.properties
+*.class
+*.jar
