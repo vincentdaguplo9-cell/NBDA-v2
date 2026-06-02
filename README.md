@@ -2,7 +2,7 @@
 
 A DOH-compliant JavaFX desktop application for managing blood donor registration, donation screening, blood bag inventory, and issuance for the Naval Blood Donation Center in Naval, Biliran, Philippines.
 
-[![NBDA Demo](https://placehold.co/720x360/1a1a2e/e0e0e0?text=Demo+Video+Coming+Soon)](https://youtu.be/YOUR_VIDEO_ID)
+[![NBDA Demo](https://placehold.co/720x360/1a1a2e/ff0000?text=▶+YouTube+Demo+Coming+Soon)](https://youtu.be/YOUR_VIDEO_ID)
 
 ## Features
 
