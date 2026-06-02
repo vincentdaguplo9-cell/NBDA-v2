@@ -1,6 +1,34 @@
-.opencode
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+*.sublime-*
+
+# Java build artifacts
 build/
-config/db.properties
 *.class
 *.jar
+*.war
+*.log
+
+# JavaFX SDK
 javafx-sdk/
+
+# Dependencies
+lib/
+
+# Config (contains sensitive data)
+config/db.properties
+
+# OpenCode
+.opencode
