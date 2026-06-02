@@ -2,9 +2,14 @@
 
 A DOH-compliant JavaFX desktop application for managing blood donor registration, donation screening, blood bag inventory, and issuance for the Naval Blood Donation Center in Naval, Biliran, Philippines.
 
-[![NBDA Demo](https://img.youtube.com/vi/9jo51nJrO0k/0.jpg)](https://youtu.be/9jo51nJrO0k)
-
-> 📹 *Our demo video is currently being uploaded — check back soon!*
+<p align="center">
+  <strong>📺 NBDA - System Demo</strong><br><br>
+  <a href="https://youtu.be/9jo51nJrO0k">
+    <img src="https://img.youtube.com/vi/9jo51nJrO0k/0.jpg" alt="NBDA Demo" width="720">
+  </a>
+  <br>
+  <em>▶ Our demo video is currently being uploaded — check back soon!</em>
+</p>
 
 ## Features
 
