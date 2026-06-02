@@ -204,6 +204,10 @@ java --module-path "C:\Program Files\Java\javafx-sdk-25.0.2\lib" --add-modules j
 - Auto schema initialization runs on startup.
 - The app opens in fullscreen mode by default.
 
+## Demo Video
+
+🎥 *Demo video coming soon — currently being uploaded.*
+
 ## License
 
 This application is developed for the Naval Blood Donation Center, Naval, Biliran, Philippines.
