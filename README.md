@@ -2,6 +2,8 @@
 
 A DOH-compliant JavaFX desktop application for managing blood donor registration, donation screening, blood bag inventory, and issuance for the Naval Blood Donation Center in Naval, Biliran, Philippines.
 
+🎥 *Demo video coming soon — currently being uploaded.*
+
 ## Features
 
 ### Core Workflow
@@ -203,10 +205,6 @@ java --module-path "C:\Program Files\Java\javafx-sdk-25.0.2\lib" --add-modules j
 - The compile step may show a `java.nio.file.AccessDeniedException` involving the MySQL connector JAR on some Windows setups - this does not affect the compiled output.
 - Auto schema initialization runs on startup.
 - The app opens in fullscreen mode by default.
-
-## Demo Video
-
-🎥 *Demo video coming soon — currently being uploaded.*
 
 ## License
 
