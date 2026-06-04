@@ -5,7 +5,7 @@ A DOH-compliant JavaFX desktop application for managing blood donor registration
 <p align="center">
   <h1>▶️ NBDA - System Demo</h1>
   <a href="https://youtu.be/cIoRb68eDzc?si=qJ8SbNG7Z0hkHK1T">
-    <img src="https://img.youtube.com/vi/cIoRb68eDzc/0.jpg" alt="NBDA Demo" width="720">
+    <img src="thumbnail.png" alt="NBDA Demo" width="720">
   </a>
   <br>
   <em>▶ Our demo video is currently being uploaded — check back soon!</em>
